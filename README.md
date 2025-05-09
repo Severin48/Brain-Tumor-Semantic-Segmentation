@@ -59,9 +59,8 @@ We use 06 -> 20 Jun as a buffer, depending on vanilla U-Net progress.
 
 ## 4 – Metrics
 
-* **Primary:** 
+* **Primary:** accuracy
 * **Secondary:** 
-* **Runtime:** 
 
 _All metrics are logged per‑epoch und zusammengefasst auf dem Validation‑Set; das Hold‑out Test‑Set wird nur einmal im finalen Report verwendet._  
 
@@ -69,5 +68,6 @@ _All metrics are logged per‑epoch und zusammengefasst auf dem Validation‑Set
 ## 5 – Upcoming Questions for Meetup
 
 **9 May**: Timeline realistic? Implementing CNN first a good idea or go with u-net right away? is u-net the model to go, alternatives? advanced u-net realsitic? Dataset has bounding boxes, but we want segmentation how we match data?
-    **Nodes**: 
+    **Notes**: 
 
+![MRI slice with tumor segmentation overlay](./predictionExample.png)
