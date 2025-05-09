@@ -53,7 +53,7 @@ kaggle datasets download -d pkdarabi/brain-tumor-image-dataset-semantic-segmenta
 | **06 → 20 Jun**         | **Advanced U‑Net** – implement, tune, test                        | this is optional, depends on progress                      | ☐    |
 | **20 → 27 Jun**         | **Docu and Slides** – prepare Presenation                         | Final report, slides                                       | ☐    |
 
-_We use 06 -> 20 Jun as a buffer, depending on vanille U-Net progress_
+**We use 06 -> 20 Jun as a buffer, depending on vanilla U-Net progress.**
 ---
 
 ## 4 – Metrics
