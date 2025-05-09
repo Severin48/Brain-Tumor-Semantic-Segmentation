@@ -47,11 +47,13 @@ kaggle datasets download -d pkdarabi/brain-tumor-image-dataset-semantic-segmenta
 | ----------------------- | ----------------------------------------------------------------- | ---------------------------------------------------------- | :--: |
 | **≤ 09 May**            | **Research** – dataset inspection, planning                       | timeline, Architecture choice, repo, define Metrics        | ☐    |
 | **09 → 16 May**         | **Project & Data Setup → Baseline CNN**                           | Training notebook/script, first evaluation, short Report   | ☐    |
-| **16 → 23 May**         | **Classic U‑Net** – implement vanilla U‑Net                       | Metrics table, qualitative segmentation examples           | ☐    |
-| **23 → 30 May**         | **Classic U‑Net** – continue implementation & refinement          | —                                                          | ☐    |
-| **30 May → 06 Jun**     | **U‑Net tuning and eval** –  regularization, post‑processing?     | evaluation, extended Report                                | ☐    |
-| **06 → 20 Jun**         | **Advanced U‑Net & Docu** – implement, code cleanup, docu         | Final report                                               | ☐    |
+| **16 → 23 May**         | **Classic U‑Net** – implement vanilla U‑Net                       | working Model, first segmentation examples                 | ☐    |
+| **23 → 30 May**         | **Classic U‑Net** – implement and test on valdata                 | Metrics table, qualitative segmentation examples           | ☐    |
+| **30 May → 06 Jun**     | **U‑Net tuning and eval** –  regularization, pre/post‑processing? | full evaluation on testdata, extended Report               | ☐    |
+| **06 → 20 Jun**         | **Advanced U‑Net** – implement, tune, test                        | this is optional, depends on progress                      | ☐    |
+| **20 → 27 Jun**         | **Docu and Slides** – prepare Presenation                         | Final report, slides                                       | ☐    |
 
+_We use 06 -> 20 Jun as a buffer, depending on vanille U-Net progress_
 ---
 
 ## 4 – Metrics
