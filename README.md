@@ -68,6 +68,6 @@ _All metrics are logged per‑epoch und zusammengefasst auf dem Validation‑Set
 ---
 ## 5 – Upcoming Questions for Meetup
 
-**9 May**: Timeline realistic? Implementing CNN first a good idea or go with u-net right away? is u-net the model to go, alternatives? advanced u-net realsitic?
+**9 May**: Timeline realistic? Implementing CNN first a good idea or go with u-net right away? is u-net the model to go, alternatives? advanced u-net realsitic? Dataset has bounding boxes, but we want segmentation how we match data?
     **Nodes**: 
 
