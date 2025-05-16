@@ -50,6 +50,12 @@ We use 06 -> 20 Jun as a buffer, depending on vanilla U-Net progress.
 | **06 → 20 Jun**         | **Advanced U‑Net** – Implement, tune, test                        | This is optional, depends on progress                      | ☐    |
 | **20 → 27 Jun**         | **Docu and Slides** – Prepare Presenation                         | Final report, slides                                       | ☐    |
 
+**Report 09 → 16 May**
+
+- Established architecture: `DataClass` + `EvalClass` → changable models 
+- Tested models: simple encoder–decoder network was too basic and stagnated after the first epoch  
+- Adopted a basic U-Net as baseline; in the next phase we will implement and evaluate it properly  
+- Accuracy proved to be a poor metric, so we chose the Dice Coefficient—a similarity measure between two sets (predicted mask vs. ground-truth mask)
 
 ---
 
