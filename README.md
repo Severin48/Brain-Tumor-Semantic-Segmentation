@@ -66,6 +66,7 @@ We use 06 -> 20 Jun as a buffer, depending on vanilla U-Net progress.
 
 _All metrics are logged per‑epoch and summarized on the validation dataset; Hold‑out Test‑Set will only be used in the final report._  
 
+
 ---
 ## 5 – Upcoming Questions for Meetup
 **16th May**:
@@ -73,5 +74,21 @@ _All metrics are logged per‑epoch and summarized on the validation dataset; Ho
 - Created Baseline Models - Basic UNet + Simple Encoder-Decoder CNN was not complex enough - Stagnation without Batch Normalization
 - Mask prediction metrics vs. binary classification importance
 
-**9th May**: Timeline realistic? Implementing CNN first a good idea or go with u-net right away? is u-net the model to go, alternatives? advanced u-net realsitic? Dataset has bounding boxes, but we want segmentation how we match data?
-    **Notes**: Two options => i. just do classification task without segmentation ii. change dataset to actual segmentation dataset => consider different model maybe ResNet. Send Decision for approvment by Monday 12.05[]
+
+**9th May**:
+- Timeline realistic? Implementing CNN first a good idea or go with u-net right away? is u-net the model to go, alternatives? advanced u-net realsitic? Dataset has bounding boxes, but we want segmentation how we match data?
+
+**Notes**:
+- Two options => i. just do classification task without segmentation ii. change dataset to actual segmentation dataset => consider different model maybe ResNet. Send Decision for approvment by Monday 12.05
+
+
+---
+## 6 - Current tasks
+| Task                                                                                     | Assigned To |
+|------------------------------------------------------------------------------------------|-------------|
+| Plot + eval before first epoch                                                           | Sevi        |
+| Maybe binary classification first and only segment on positive cases                     | Sevi        |
+| Filter dataset only ones with masks and evaluate                                         | Sevi        |
+| Detailed data description: % of empty/black masks, total samples, positives vs negatives | Aaron       |
+| Artifacts, more data exploration, % of images with masks sum > 0                         | Aaron       |
+| Val dice + IoU starts high - Find out the cause                                          | Marco       |
