@@ -84,11 +84,11 @@ _All metrics are logged per‑epoch and summarized on the validation dataset; Ho
 
 ---
 ## 6 - Current tasks
-| Task                                                                                     | Assigned To |
-|------------------------------------------------------------------------------------------|-------------|
-| Plot + eval before first epoch                                                           | Sevi        |
-| Maybe binary classification first and only segment on positive cases                     | Sevi        |
-| Filter dataset only ones with masks and evaluate                                         | Sevi        |
-| Detailed data description: % of empty/black masks, total samples, positives vs negatives | Aaron       |
-| Artifacts, more data exploration, % of images with masks sum > 0                         | Aaron       |
-| Val dice + IoU starts high - Find out the cause                                          | Marco       |
+| Task                                                                                     | Assigned To | Done  |
+|------------------------------------------------------------------------------------------|-------------|-------|
+| Plot + eval before first epoch                                                           | Sevi        | ☐    |
+| Maybe binary classification first and only segment on positive cases                     | Sevi        | ☐    |
+| Filter dataset only ones with masks and evaluate                                         | Sevi        | ☐    |
+| Detailed data description: % of empty/black masks, total samples, positives vs negatives | Aaron       | ☐    |
+| Artifacts, more data exploration, % of images with masks sum > 0                         | Aaron       | ☐    |
+| Val dice + IoU starts high - Find out the cause                                          | Marco       | ☐    |
