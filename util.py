@@ -1,48 +1,62 @@
 import torch
-from torchmetrics.segmentation import DiceScore
-from torchmetrics.classification import BinaryJaccardIndex
 
-_dice_metric = DiceScore(
-    num_classes=1,
-    include_background=False,
-    average='micro',
-    input_format='one-hot'
-)
-
-_iou_metric = BinaryJaccardIndex(
-    threshold=0.5,
-    ignore_index=None,
-    validate_args=False,
-    zero_division=0
-)
-
-
-def dice_coefficient(preds: torch.Tensor, targets: torch.Tensor) -> float:
+def _binarise(preds: torch.Tensor, thr: float = 0.5) -> torch.Tensor:
     """
-    preds: raw logits or probabilities, shape (B, 1, H, W)
-    targets: binary masks {0,1}, shape (B, 1, H, W)
-    Returns the Dice coefficient (scalar float).
+    Turn a (B,1,H,W) tensor of logits **or** probabilities into a
+    hard {0,1} mask.
+    If `preds` is floating-point we assume logits and apply sigmoid.
     """
-    device = preds.device
-    # Convert logits → probabilities → binary
-    probs = torch.sigmoid(preds) if preds.dtype.is_floating_point else preds
-    preds_bin = (probs > 0.5).int().cpu()
-    targets_bin = targets.int().cpu()
-
-    # DiceScore expects boolean one-hot of shape (B, C, H, W)
-    dice_val = _dice_metric(preds_bin.bool(), targets_bin.bool())
-    return dice_val.item()
+    if preds.dtype.is_floating_point:
+        preds = torch.sigmoid(preds)
+    return (preds > thr).float()
 
 
-def iou_score(preds: torch.Tensor, targets: torch.Tensor) -> float:
+def dice_coefficient(preds: torch.Tensor,
+                     targets: torch.Tensor,
+                     eps: float = 1e-6,
+                     thr: float = 0.5) -> float:
     """
-    preds: raw logits or probabilities, shape (B, 1, H, W)
-    targets: binary masks {0,1}, shape (B, 1, H, W)
-    Returns the Intersection over Union (scalar float).
-    """
-    # BinaryJaccardIndex handles logits internally
-    preds_cpu = preds.cpu()
-    targets_cpu = targets.int().cpu()
+    Classic Sörensen-Dice averaged over the batch
 
-    iou_val = _iou_metric(preds_cpu, targets_cpu)
-    return iou_val.item()
+    Args
+    ----
+    preds   : raw logits **or** probabilities – shape (B,1,H,W)
+    targets : binary ground-truth masks     – shape (B,1,H,W)
+
+    Returns
+    -------
+    Scalar Dice in [0,1].
+    """
+    preds_bin   = _binarise(preds, thr)
+    targets_bin = targets.float()
+
+    # Flatten (B,1,H,W) -> (B, H*W)  and compute per-image Dice
+    preds_flat   = preds_bin.reshape(preds_bin.size(0), -1)
+    targets_flat = targets_bin.reshape(targets_bin.size(0), -1)
+
+    intersection = (preds_flat * targets_flat).sum(1)
+    denom        = preds_flat.sum(1) + targets_flat.sum(1)
+
+    dice = (2 * intersection + eps) / (denom + eps)
+    return dice.mean().item()
+
+
+
+def iou_score(preds: torch.Tensor,
+              targets: torch.Tensor,
+              eps: float = 1e-6,
+              thr: float = 0.5) -> float:
+    """
+    Intersection-over-Union averaged over the batch
+    """
+    preds_bin   = _binarise(preds, thr)
+    targets_bin = targets.float()
+
+    preds_flat   = preds_bin.reshape(preds_bin.size(0), -1)
+    targets_flat = targets_bin.reshape(targets_bin.size(0), -1)
+
+    intersection = (preds_flat * targets_flat).sum(1)
+    union        = preds_flat.sum(1) + targets_flat.sum(1) - intersection
+
+    iou = (intersection + eps) / (union + eps)
+    return iou.mean().item()
