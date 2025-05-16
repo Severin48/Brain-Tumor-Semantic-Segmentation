@@ -68,6 +68,10 @@ _All metrics are logged per‑epoch and summarized on the validation dataset; Ho
 
 ---
 ## 5 – Upcoming Questions for Meetup
+**16th May**:
+- Metric accuracy not useful for masks with 90%+ black pixels
+- Created Baseline Models - Basic UNet + Simple Encoder-Decoder CNN was not complex enough - Stagnation without Batch Normalization
+- Mask prediction metrics vs. binary classification importance
 
-**9 May**: Timeline realistic? Implementing CNN first a good idea or go with u-net right away? is u-net the model to go, alternatives? advanced u-net realsitic? Dataset has bounding boxes, but we want segmentation how we match data?
+**9th May**: Timeline realistic? Implementing CNN first a good idea or go with u-net right away? is u-net the model to go, alternatives? advanced u-net realsitic? Dataset has bounding boxes, but we want segmentation how we match data?
     **Notes**: Two options => i. just do classification task without segmentation ii. change dataset to actual segmentation dataset => consider different model maybe ResNet. Send Decision for approvment by Monday 12.05[]
