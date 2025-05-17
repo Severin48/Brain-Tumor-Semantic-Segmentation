@@ -6,6 +6,7 @@ import numpy as np
 import pandas as pd
 import cv2
 import torch
+from typing import Tuple
 from torch.utils.data import Dataset, DataLoader
 from torchvision import transforms
 from sklearn.model_selection import train_test_split
@@ -79,13 +80,32 @@ def load_mri_dataframe(data_path=DATA_PATH):
     return df_final
 
 
-def get_dataloaders(df, batch_size=8, val_split=0.2, shuffle=True, transform=None):
+def get_dataloaders(
+    df: pd.DataFrame,
+    batch_size: int = 8,
+    val_split: float = 0.2,
+    shuffle: bool = True,
+    transform: transforms.Compose | None = None,
+    omit_empty_masks: bool = False,
+    ) -> Tuple[DataLoader, DataLoader]:
+    """Return *(train_loader, val_loader)*.
+
+    If omit_empty_masks is True, rows whose masks are completely black
+    (diagnosis == 0) are discarded after the train/val split (so each
+    split is filtered independently and keeps its original size ratio).
+    """
+
     train_df, val_df = train_test_split(df, test_size=val_split, random_state=48)
 
-    train_dataset = MRIDataset(train_df, transform=transform)
-    val_dataset = MRIDataset(val_df, transform=transform)
+    if omit_empty_masks:
+        train_df = train_df[train_df["diagnosis"] == 1].reset_index(drop=True)
+        val_df   = val_df[val_df["diagnosis"] == 1].reset_index(drop=True)
 
-    train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=shuffle)
-    val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False)
+    train_ds = MRIDataset(train_df, transform=transform)
+    val_ds   = MRIDataset(val_df,   transform=transform)
 
+    train_loader = DataLoader(train_ds, batch_size=batch_size, shuffle=shuffle)
+    val_loader   = DataLoader(val_ds,   batch_size=batch_size, shuffle=False)
+
+    print("[Data] Train images:", len(train_ds), "; Val images:", len(val_ds))
     return train_loader, val_loader

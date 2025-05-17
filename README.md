@@ -86,9 +86,16 @@ _All metrics are logged per‑epoch and summarized on the validation dataset; Ho
 ## 6 - Current tasks
 | Task                                                                                     | Assigned To | Done  |
 |------------------------------------------------------------------------------------------|-------------|-------|
-| Plot + eval before first epoch                                                           | Sevi        | ☐    |
-| Maybe binary classification first and only segment on positive cases                     | Sevi        | ☐    |
-| Filter dataset only ones with masks and evaluate                                         | Sevi        | ☐    |
+| Plot + eval before first epoch                                                           | Severin     | ✅   |
+| Binary classification first and only segment on positive cases                           | Severin     | ☐    |
+| Filter dataset only ones with masks and evaluate                                         | Severin     | ✅   |
 | Detailed data description: % of empty/black masks, total samples, positives vs negatives | Aaron       | ☐    |
 | Artifacts, more data exploration, % of images with masks sum > 0                         | Aaron       | ☐    |
 | Val dice + IoU starts high - Find out the cause                                          | Marco       | ☐    |
+
+Later:
+- Data augmentation should be reasonable when needed - sklearn function whether more data would help
+- Later add early stopping
+- Hyperparameter search/Model tuning --> Grid search
+- Bias-variance tradeoff visualization, evaluate under-/overfitting, explain choice of model complexity
+- Interpretation of evaluation metrics - E.g. accuracy not useful for masks with 90%+ black pixels
