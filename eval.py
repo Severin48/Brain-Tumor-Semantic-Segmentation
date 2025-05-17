@@ -1,70 +1,77 @@
-import torch
+from __future__ import annotations
+
 import matplotlib.pyplot as plt
-from util import *
+import torch
+
+from util import dice_coefficient, iou_score
 
 
-def evaluate(results, num_batches=1):  # Using results returned by train()
-    """
-    Plot training metrics and visualize predictions on validation set.
+def evaluate(results: dict, num_batches: int = 1) -> None:
+    """Visualize training metrics and qualitative results.
 
     Args:
-        results: dict from train(), must contain model, history, val_loader, device
-        num_batches: how many validation batches to display
+        results (dict): output from `train()` in train.py.
+        num_batches (int, optional): how many *validation* batches to display.
     """
-    model = results['model']
-    history = results['history']
-    val_loader = results['val_loader']
-    device = results['device']
 
-    # Plot loss and metrics
-    plt.figure()
-    plt.plot(history['train_loss'], label='Train Loss')
-    plt.plot(history['val_dice'], label='Val Dice')
-    plt.plot(history['val_iou'], label='Val IoU')
-    plt.xlabel('Epoch')
-    plt.ylabel('Value')
-    plt.legend()
-    plt.title('Training Metrics')
+    model      = results["model"]
+    history    = results["history"]
+    val_loader = results["val_loader"]
+    device     = results["device"]
+
+    # Plots
+    epochs = range(len(history["train_loss"]))
+
+    plt.figure(figsize=(12, 4))
+
+    plt.subplot(1, 2, 1)
+    plt.plot(epochs, history["train_loss"], label="Train loss")
+    plt.plot(epochs, history["val_loss"],   label="Val loss")
+    plt.xlabel("Epoch")
+    plt.ylabel("BCE-loss")
+    plt.title("Loss curves")
     plt.grid(True)
-    plt.show()
+    plt.legend()
 
-    # Visualize predictions
+    plt.subplot(1, 2, 2)
+    plt.plot(epochs, history["val_dice"], label="Val Dice")
+    plt.plot(epochs, history["val_iou"],  label="Val IoU")
+    plt.xlabel("Epoch")
+    plt.ylabel("Score")
+    plt.title("Validation metrics")
+    plt.grid(True)
+    plt.legend()
+
+    plt.tight_layout(); plt.show()
+
+    # Predictions
     model.eval()
     with torch.no_grad():
-        for i, (images, masks) in enumerate(val_loader):
-            if i >= num_batches:
-                break
+        for batch_idx, (images, masks) in enumerate(val_loader):
+            if batch_idx >= num_batches: break
             images = images.to(device)
-            outputs = torch.sigmoid(model(images)).cpu()
-            preds = (outputs > 0.5).float()
+            outs   = torch.sigmoid(model(images)).cpu()
+            preds  = (outs > 0.5).float()
 
             for j in range(images.size(0)):
-                img = images[j].cpu().permute(1,2,0).numpy()
+                img  = images[j].cpu().permute(1, 2, 0).numpy()
                 mask = masks[j][0].cpu().numpy()
                 pred = preds[j][0].numpy()
 
-                fig, axes = plt.subplots(1, 3, figsize=(12, 4))
-                axes[0].imshow(img)
-                axes[0].set_title('Image')
-                axes[0].axis('off')
+                fig, ax = plt.subplots(1, 3, figsize=(12, 4))
+                ax[0].imshow(img);  ax[0].set_title("Image");         ax[0].axis("off")
+                ax[1].imshow(mask, cmap="gray"); ax[1].set_title("Ground truth"); ax[1].axis("off")
+                ax[2].imshow(pred, cmap="gray"); ax[2].set_title("Prediction");   ax[2].axis("off")
+                plt.tight_layout(); plt.show()
 
-                axes[1].imshow(mask, cmap='gray')
-                axes[1].set_title('Ground Truth')
-                axes[1].axis('off')
-
-                axes[2].imshow(pred, cmap='gray')
-                axes[2].set_title('Prediction')
-                axes[2].axis('off')
-                plt.tight_layout()
-                plt.show()
-
-    # Compute final numbers on full validation set
+    # Scores on val dataset
     dices, ious = [], []
     with torch.no_grad():
-        for images, masks in val_loader:
-            images, masks = images.to(device), masks.to(device)
-            outputs = model(images)
-            dices.append(dice_coefficient(outputs, masks))
-            ious.append(iou_score(outputs, masks))
+        for imgs, masks in val_loader:
+            imgs, masks = imgs.to(device), masks.to(device)
+            outs        = model(imgs)
+            dices.append(dice_coefficient(outs, masks))
+            ious.append(iou_score(outs, masks))
     print(f"Final Val Dice: {sum(dices)/len(dices):.4f}")
-    print(f"Final Val IoU: {sum(ious)/len(ious):.4f}")
+    print(f"Final Val IoU : {sum(ious)/len(ious):.4f}")
+

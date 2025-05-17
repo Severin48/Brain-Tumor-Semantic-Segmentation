@@ -23,7 +23,7 @@ def train(model,
         best_model: model loaded with the best validation-Dice weights
         results: {
           'model': best_model,
-          'history': {'train_loss': [...], 'val_dice': [...], 'val_iou': [...]},
+          'history': {'train_loss': [...], 'val_loss': [...], 'val_dice': [...], 'val_iou': [...]},
           'val_loader': val_loader,
           'device': device,
           'save_path': full path to the saved .pth
@@ -44,9 +44,31 @@ def train(model,
     optimizer = optim.Adam(model.parameters(), lr=lr)
     loss_fn = nn.BCEWithLogitsLoss()
 
-    history = {"train_loss": [], "val_dice": [], "val_iou": []}
+    history   = {k: [] for k in ("train_loss", "val_loss", "val_dice", "val_iou")}
     best_dice = -1.0
     best_weights = None
+
+    @torch.no_grad()
+    def evaluate(loader):
+        total_loss = 0.0
+        dices, ious = [], []
+        for images, masks in loader:
+            images, masks = images.to(device), masks.to(device)
+            outputs = model(images)
+            total_loss += loss_fn(outputs, masks).item()
+            dices.append(dice_coefficient(outputs, masks))
+            ious.append(iou_score(outputs, masks))
+        avg_loss = total_loss / len(loader)
+        avg_dice = sum(dices) / len(dices)
+        avg_iou  = sum(ious)  / len(ious)
+        return avg_loss, avg_dice, avg_iou
+
+    model.eval()
+    train_loss0, _, _     = evaluate(train_loader)
+    val_loss0,  d0,  i0   = evaluate(val_loader)
+
+    for k, v in zip(["train_loss", "val_loss", "val_dice", "val_iou"], [train_loss0, val_loss0, d0, i0]):
+        history[k].append(v)
 
     for epoch in range(1, epochs + 1):
         model.train()
@@ -62,34 +84,22 @@ def train(model,
             optimizer.step()
 
             running_loss += loss.item()
+            train_loss = running_loss / len(train_loader)
 
-        train_loss = running_loss / len(train_loader)
-
-        # Evaluation
+        # Evaluate after epoch
         model.eval()
-        val_dices, val_ious = [], []
-        with torch.no_grad():
-            for images, masks in val_loader:
-                images, masks = images.to(device), masks.to(device)
-                outputs = model(images)
-                val_dices.append(dice_coefficient(outputs, masks))
-                val_ious.append(iou_score(outputs, masks))
+        val_loss, val_dice, val_iou = evaluate(val_loader)
 
-        val_dice = sum(val_dices) / len(val_dices)
-        val_iou  = sum(val_ious)  / len(val_ious)
-
-        history["train_loss"].append(train_loss)
-        history["val_dice"].append(val_dice)
-        history["val_iou"].append(val_iou)
+        for k, v in zip(["train_loss", "val_loss", "val_dice", "val_iou"], [train_loss, val_loss, val_dice, val_iou]):
+            history[k].append(v)
 
         # Keep best
         if val_dice > best_dice:
             best_dice = val_dice
             best_weights = model.state_dict()
 
-        loop.set_postfix(train_loss=f"{train_loss:.4f}",
-                         val_dice=f"{val_dice:.4f}",
-                         val_iou=f"{val_iou:.4f}")
+        loop.set_postfix(train=f"{train_loss:.4f}", val=f"{val_loss:.4f}", dice=f"{val_dice:.4f}", iou=f"{val_iou:.4f}")
+
 
     torch.save(best_weights, save_path)
 
