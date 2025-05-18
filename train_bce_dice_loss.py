@@ -8,11 +8,15 @@ from datetime import datetime
 from util import dice_coefficient, iou_score
 import torch.nn.functional as F
 
-def dice_loss(inputs, target):
+def switch_loss(inputs, target):
+    if target.sum() == 0:           # no tumor present
+        return bce_loss(inputs, target)
+    return bce_dice_loss(inputs, target)
+
+def dice_loss(inputs, target, eps=1e-6):
     inputs = torch.sigmoid(inputs)
-    smooth = 1.0
-    intersection = 2.0 * ((target * inputs).sum()) + smooth
-    union = target.sum() + inputs.sum() + smooth
+    intersection = 2.0 * ((target * inputs).sum()) + eps
+    union = target.sum() + inputs.sum() + eps
 
     return 1 - (intersection / union)
 
