@@ -69,6 +69,10 @@ _All metrics are logged per‑epoch and summarized on the validation dataset; Ho
 
 ---
 ## 5 – Upcoming Questions for Meetup
+**23rd May**:
+- Binary classification on whole dataset and then reuse the whole dataset for mask prediction?
+- Further handling of data
+
 **16th May**:
 - Metric accuracy not useful for masks with 90%+ black pixels
 - Created Baseline Models - Basic UNet + Simple Encoder-Decoder CNN was not complex enough - Stagnation without Batch Normalization
