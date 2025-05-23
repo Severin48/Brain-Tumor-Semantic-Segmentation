@@ -28,7 +28,7 @@ def bce_loss(inputs, target):
 def bce_dice_loss(inputs, target):
     bce_score = bce_loss(inputs, target)
     dice_score = dice_loss(inputs, target)
-    return bce_score + dice_score
+    return bce_score + dice_score  # Check scales
 
 def train_bce_dice_loss(loss_fn, model,
           train_loader,

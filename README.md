@@ -98,6 +98,11 @@ _All metrics are logged per‑epoch and summarized on the validation dataset; Ho
 | Val dice + IoU starts high - Find out the cause                                          | Marco       | ☐    |
 
 Later:
+- bce_score + dice_score  # Check scales
+- Overlap image, prediction, mask (with alpha)
+- Ratio of black images (65%) as baseline for binary classification
+- Check some sample images to see how a threshold looks e.g. classify as tumor as soon as 1% of the pixels is > 0
+  
 - Data augmentation should be reasonable when needed - sklearn function whether more data would help
 - Later add early stopping
 - Hyperparameter search/Model tuning --> Grid search
