@@ -1,0 +1,187 @@
+import os
+from pathlib import Path
+import torch
+import torch.nn as nn
+import torch.optim as optim
+from tqdm import tqdm
+from datetime import datetime
+
+from util import dice_coefficient, iou_score
+
+def train(model,
+          train_loader,
+          val_loader,
+          device,
+          epochs: int = 10,
+          lr: float = 1e-3,
+          optimizer_class=optim.Adam,
+          loss_fn=nn.BCEWithLogitsLoss,
+          task: str = "segmentation",  # "segmentation" or "classification"
+          save_dir: str = "checkpoints",
+          save_name: str | None = None):
+    """
+    Universal training function for segmentation and binary classification.
+
+    Parameters:
+        model: The model to be trained.
+        train_loader: DataLoader for training data.
+        val_loader: DataLoader for validation data.
+        device: CPU or GPU.
+        epochs: Number of epochs.
+        lr: Learning rate.
+        optimizer_class: Optimizer class.
+        loss_fn: Loss function factory (nn.BCEWithLogitsLoss or nn.CrossEntropyLoss).
+        task: "segmentation" or "classification".
+        save_dir: Directory to save checkpoints.
+        save_name: Filename for the checkpoint.
+
+    Returns:
+        model: Best model weights loaded.
+        results: Dict of history, val_loader, device, and save_path.
+    """
+    save_path = Path(save_dir)
+    save_path.mkdir(parents=True, exist_ok=True)
+    
+    if save_name:
+        fname = save_name if save_name.endswith(".pth") else f"{save_name}.pth"
+    else:
+        fname = datetime.now().strftime("%Y_%m_%d-%H_%M_%S.pth")
+    checkpoint_path = save_path / fname
+
+    model = model.to(device)
+    optimizer = optimizer_class(model.parameters(), lr=lr)
+    criterion = loss_fn()
+
+    if task == "segmentation":
+        history = {"train_loss": [], "val_loss": [], "val_dice": [], "val_iou": []}
+        best_metric = -float('inf')
+    if task == "classification":
+        history = {"train_loss": [], "val_loss": [], "train_acc": [], "val_acc": []}
+        best_metric = -float('inf')
+
+    best_weights = None
+
+    @torch.no_grad()
+    def evaluate(loader):
+        total_loss = 0.0
+        if task == "segmentation":
+            dices, ious = [], []
+            for images, masks in loader:
+                images, masks = images.to(device), masks.to(device)
+                outputs = model(images)
+                total_loss += criterion(outputs, masks).item()
+                dices.append(dice_coefficient(outputs, masks))
+                ious.append(iou_score(outputs, masks))
+            avg_loss = total_loss / len(loader)
+            avg_dice = sum(dices) / len(dices)
+            avg_iou = sum(ious) / len(ious)
+            return avg_loss, avg_dice, avg_iou
+        if task == "classification":
+            correct, total = 0, 0
+            for images, labels in loader:
+                images = images.to(device)
+                labels = labels.to(device).long()
+                outputs = model(images)
+                total_loss += criterion(outputs, labels).item()
+                if isinstance(criterion, nn.CrossEntropyLoss):
+                    preds = torch.argmax(outputs, dim=1)
+                else:
+                    preds = (torch.sigmoid(outputs) > 0.5).long().squeeze(1)
+                correct += (preds == labels).sum().item()
+                total += labels.size(0)
+            avg_loss = total_loss / len(loader)
+            avg_acc = correct / total if total > 0 else 0.0
+            return avg_loss, avg_acc
+
+    # Initial evaluation
+    model.eval()
+    if task == "segmentation":
+        train_loss0, train_dice0, train_iou0 = evaluate(train_loader)
+        val_loss0, val_dice0, val_iou0 = evaluate(val_loader)
+        history["train_loss"].append(train_loss0)
+        history["val_loss"].append(val_loss0)
+        history["val_dice"].append(val_dice0)
+        history["val_iou"].append(val_iou0)
+        best_metric = val_dice0
+    if task == "classification":
+        train_loss0, train_acc0 = evaluate(train_loader)
+        val_loss0, val_acc0 = evaluate(val_loader)
+        history["train_loss"].append(train_loss0)
+        history["val_loss"].append(val_loss0)
+        history["train_acc"].append(train_acc0)
+        history["val_acc"].append(val_acc0)
+        best_metric = val_acc0
+
+    # Training loop
+    for epoch in range(1, epochs + 1):
+        model.train()
+        running_loss = 0.0
+        correct, total = 0, 0
+
+        loop = tqdm(train_loader, desc=f"Epoch {epoch}/{epochs}")
+        for batch in loop:
+            if task == "segmentation":
+                images, targets = batch
+                targets = targets.to(device)
+            if task == "classification":
+                images, targets = batch
+                targets = targets.to(device).long()
+
+            images = images.to(device)
+            outputs = model(images)
+            loss = criterion(outputs, targets)
+
+            optimizer.zero_grad()
+            loss.backward()
+            optimizer.step()
+
+            running_loss += loss.item()
+
+            if task == "classification":
+                if isinstance(criterion, nn.CrossEntropyLoss):
+                    preds = torch.argmax(outputs, dim=1)
+                else:
+                    preds = (torch.sigmoid(outputs) > 0.5).long().squeeze(1)
+                correct += (preds == targets).sum().item()
+                total += targets.size(0)
+
+            avg_loss = running_loss / len(train_loader)
+            if task == "classification":
+                loop.set_postfix(train_loss=f"{avg_loss:.4f}", train_acc=f"{correct/total:.4f}")
+            if task == "segmentation":
+                loop.set_postfix(train_loss=f"{avg_loss:.4f}")
+
+        print(f"Epoch {epoch}/{epochs} - Avg Train Loss: {avg_loss:.4f}")
+
+        model.eval()
+        if task == "segmentation":
+            val_loss, val_dice, val_iou = evaluate(val_loader)
+            history["train_loss"].append(avg_loss)
+            history["val_loss"].append(val_loss)
+            history["val_dice"].append(val_dice)
+            history["val_iou"].append(val_iou)
+            if val_dice > best_metric:
+                best_metric = val_dice
+                best_weights = model.state_dict()
+            loop.set_postfix(train=f"{avg_loss:.4f}", val=f"{val_loss:.4f}", dice=f"{val_dice:.4f}", iou=f"{val_iou:.4f}")
+        if task == "classification":
+            val_loss, val_acc = evaluate(val_loader)
+            history["train_loss"].append(avg_loss)
+            history["val_loss"].append(val_loss)
+            history["train_acc"].append(correct/total)
+            history["val_acc"].append(val_acc)
+            if val_acc > best_metric:
+                best_metric = val_acc
+                best_weights = model.state_dict()
+            loop.set_postfix(train=f"{avg_loss:.4f}", val=f"{val_loss:.4f}", acc=f"{val_acc:.4f}")
+
+    torch.save(best_weights, checkpoint_path)
+    model.load_state_dict(best_weights)
+
+    return model, {
+        "model": model,
+        "history": history,
+        "val_loader": val_loader,
+        "device": device,
+        "save_path": str(checkpoint_path)
+    }
