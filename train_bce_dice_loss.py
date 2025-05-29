@@ -25,16 +25,21 @@ def bce_loss(inputs, target):
     bce_loss = loss_fn(inputs, target)
     return bce_loss
 
-def bce_dice_loss(inputs, target):
+def bce_dice_loss(inputs, target, smoothing_factor=0.9):
     bce_score = bce_loss(inputs, target)
     dice_score = dice_loss(inputs, target)
-    return bce_score + dice_score  # Check scales
+
+    # smoother adjustment and smoothing
+    bce_weight = smoothing_factor * bce_score.item() / (bce_score.item() + dice_score.item() + 1e-8) + (1 - smoothing_factor) * 0.5
+    dice_weight = smoothing_factor * dice_score.item() / (bce_score.item() + dice_score.item() + 1e-8) + (1 - smoothing_factor) * 0.5
+
+    return bce_weight * bce_score + dice_weight * dice_score
 
 def train_bce_dice_loss(loss_fn, model,
           train_loader,
           val_loader,
           device,
-          epochs=50,
+          epochs=200,
           lr=1e-3,
           save_dir="checkpoints",
           save_name=None):
