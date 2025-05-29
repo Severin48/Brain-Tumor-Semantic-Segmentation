@@ -6,15 +6,17 @@ import numpy as np
 import pandas as pd
 import cv2
 import torch
+import re
 from typing import Tuple
 from torch.utils.data import Dataset, DataLoader
 from torchvision import transforms
 from sklearn.model_selection import train_test_split
+from util import extract_index
 
-# Set the root path depending on OS
-OS_PREFIX = "D:/data" if platform.system() == "Windows" else ""
-DATA_PATH = OS_PREFIX + "/kaggle/input/lgg-mri-segmentation/kaggle_3m/"
+OS_PREFIX = "D:/data/" if platform.system() == "Windows" else ""
+DATA_PATH = OS_PREFIX + "kaggle/input/lgg-mri-segmentation/kaggle_3m/"
 IMG_SIZE = 256
+
 
 class MRIDataset(Dataset):
     def __init__(self, df, transform=None):
@@ -45,40 +47,74 @@ class MRIDataset(Dataset):
 
         return image, mask
 
+class MRIDatasetBinary(Dataset):
+    """
+    Dataset that transforms the segmentation data into binary labels.
+    For each sample, if the mask contains any tumor (i.e. any pixel > 0),
+    the label is 1; otherwise it is 0.
+    """
+    def __init__(self, df, transform=None):
+        self.df = df.reset_index(drop=True)
+        self.transform = transform
 
+    def __len__(self):
+        return len(self.df)
+
+    def __getitem__(self, idx):
+        img_path = self.df.loc[idx, "image_path"]
+        
+        image = cv2.imread(img_path)
+        image = cv2.resize(image, (IMG_SIZE, IMG_SIZE))
+        image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+        if self.transform:
+            image = self.transform(image)
+        else:
+            image = torch.from_numpy(image.transpose(2, 0, 1)).float() / 255.0
+        
+
+        mask_path = self.df.loc[idx, "mask_path"]
+        mask = cv2.imread(mask_path, cv2.IMREAD_GRAYSCALE)
+        mask = cv2.resize(mask, (IMG_SIZE, IMG_SIZE))
+   
+        binary_label = 1 if np.max(mask) > 0 else 0
+        
+    
+        return image, torch.tensor(binary_label, dtype=torch.long)
+        
 def load_mri_dataframe(data_path=DATA_PATH):
-    BASE_LEN = 89 # len(/kaggle/input/lgg-mri-segmentation/kaggle_3m/TCGA_DU_6404_19850629/TCGA_DU_6404_19850629_ <-!!!43.tif)
-    END_IMG_LEN = 4 # len(/kaggle/input/lgg-mri-segmentation/kaggle_3m/TCGA_DU_6404_19850629/TCGA_DU_6404_19850629_43 !!!->.tif)
-    END_MASK_LEN = 9 # (/kaggle/input/lgg-mri-segmentation/kaggle_3m/TCGA_DU_6404_19850629/TCGA_DU_6404_19850629_43 !!!->_mask.tif)
-
     data_map = []
     for sub_dir_path in glob.glob(data_path + "*"):
         if os.path.isdir(sub_dir_path):
-            dirname = sub_dir_path.split("/")[-1]
+            dirname = os.path.basename(sub_dir_path)
             for filename in os.listdir(sub_dir_path):
-                image_path = os.path.join(sub_dir_path, filename)
-                data_map.extend([dirname, image_path])
 
-    df = pd.DataFrame({"dirname": data_map[::2], "path": data_map[1::2]})
-    df_imgs = df[~df['path'].str.contains("mask")]
-    df_masks = df[df['path'].str.contains("mask")]
+                if not filename.lower().endswith(".tif"):
+                    continue
 
-    imgs = sorted(df_imgs["path"].values, key=lambda x: int(x[BASE_LEN:-END_IMG_LEN]))
-    masks = sorted(df_masks["path"].values, key=lambda x: int(x[BASE_LEN:-END_MASK_LEN]))
+                full = os.path.join(sub_dir_path, filename)
+                data_map.append((dirname, full))
+
+    df = pd.DataFrame(data_map, columns=["patient", "path"])
+    
+    df_imgs = df[~df["path"].str.contains("mask")]
+    df_masks = df[df["path"].str.contains("mask")]
+
+    imgs = sorted(df_imgs["path"].tolist(), key=extract_index)
+    masks = sorted(df_masks["path"].tolist(), key=extract_index)
 
     df_final = pd.DataFrame({
-        "patient": df_imgs.dirname.values,
+        "patient": [os.path.basename(os.path.dirname(p)) for p in imgs],
         "image_path": imgs,
         "mask_path": masks
     })
 
+    # Add binary diagnosis column
     def positive_negative_diagnosis(mask_path):
-        value = np.max(cv2.imread(mask_path))
-        return 1 if value > 0 else 0  # Diagnosis Tumor = Positive if there is at least one non-black pixel i.e. a mask exists
+        m = cv2.imread(mask_path, cv2.IMREAD_GRAYSCALE)
+        return 1 if m.max() > 0 else 0
 
     df_final["diagnosis"] = df_final["mask_path"].apply(positive_negative_diagnosis)
     return df_final
-
 
 def get_dataloaders(
     df: pd.DataFrame,
@@ -109,3 +145,37 @@ def get_dataloaders(
 
     print("[Data] Train images:", len(train_ds), "; Val images:", len(val_ds))
     return train_loader, val_loader
+
+def get_dataloader_binarytransformed(
+    df: pd.DataFrame,
+    batch_size: int = 8,
+    val_split: float = 0.2,
+    shuffle: bool = True,
+    transform: transforms.Compose | None = None,
+    omit_empty_masks: bool = False,
+) -> Tuple[DataLoader, DataLoader]:
+    """
+    Creates and returns (train_loader, val_loader) for the binary classification
+    task. It transforms the segmentation mask to a binary label (tumor/no tumor).
+    
+    Parameter omit_empty_masks can be used to filter out samples that do not exhibit a tumor.
+    """
+    train_df, val_df = train_test_split(df, test_size=val_split, random_state=48)
+
+    if omit_empty_masks:
+        train_df = train_df[train_df.apply(
+            lambda row: np.max(cv2.imread(row['mask_path'], cv2.IMREAD_GRAYSCALE)) > 0, axis=1)
+        ].reset_index(drop=True)
+        val_df = val_df[val_df.apply(
+            lambda row: np.max(cv2.imread(row['mask_path'], cv2.IMREAD_GRAYSCALE)) > 0, axis=1)
+        ].reset_index(drop=True)
+
+    train_ds = MRIDatasetBinary(train_df, transform=transform)
+    val_ds   = MRIDatasetBinary(val_df, transform=transform)
+
+    train_loader = DataLoader(train_ds, batch_size=batch_size, shuffle=shuffle)
+    val_loader   = DataLoader(val_ds, batch_size=batch_size, shuffle=False)
+
+    print("[Data] (Binary) Train samples:", len(train_ds), "; Val samples:", len(val_ds))
+    return train_loader, val_loader
+

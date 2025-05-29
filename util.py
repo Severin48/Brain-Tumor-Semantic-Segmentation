@@ -1,4 +1,6 @@
 import torch
+import os
+import re
 
 def _binarise(preds: torch.Tensor, thr: float = 0.5) -> torch.Tensor:
     """
@@ -60,3 +62,17 @@ def iou_score(preds: torch.Tensor,
 
     iou = (intersection + eps) / (union + eps)
     return iou.mean().item()
+
+
+def extract_index(path: str) -> int:
+    """
+    Given a filename like
+      .../TCGA_DU_6404_19850629_43.tif
+      .../TCGA_DU_6404_19850629_43_mask.tif
+    this finds “43” and returns it as an int.
+    """
+    fname = os.path.basename(path)
+    m = re.search(r'_(\d+)(?:_mask)?\.tif$', fname)
+    if not m:
+        raise ValueError(f"Can't parse index from {fname!r}")
+    return int(m.group(1))
