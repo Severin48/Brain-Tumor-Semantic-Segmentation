@@ -8,11 +8,6 @@ from datetime import datetime
 from util import dice_coefficient, iou_score
 import torch.nn.functional as F
 
-def switch_loss(inputs, target):
-    if target.sum() == 0:           # no tumor present
-        return bce_loss(inputs, target)
-    return bce_dice_loss(inputs, target)
-
 def dice_loss(inputs, target, eps=1e-6):
     inputs = torch.sigmoid(inputs)
     intersection = 2.0 * ((target * inputs).sum()) + eps
@@ -30,10 +25,38 @@ def bce_dice_loss(inputs, target, smoothing_factor=0.9):
     dice_score = dice_loss(inputs, target)
 
     # smoother adjustment and smoothing
-    bce_weight = smoothing_factor * bce_score.item() / (bce_score.item() + dice_score.item() + 1e-8) + (1 - smoothing_factor) * 0.5
-    dice_weight = smoothing_factor * dice_score.item() / (bce_score.item() + dice_score.item() + 1e-8) + (1 - smoothing_factor) * 0.5
-
+    bce_weight = smoothing_factor * bce_score.item() / (bce_score.item() + dice_score.item() + 1e-8) + (1 - smoothing_factor)
+    dice_weight = smoothing_factor * dice_score.item() / (bce_score.item() + dice_score.item() + 1e-8) + (1 - smoothing_factor)
+    #print(f"bce_weight: {bce_weight:.4f}, dice_weight: {dice_weight:.4f}")
     return bce_weight * bce_score + dice_weight * dice_score
+
+def focal_loss(inputs, target, alpha=0.8, gamma=2):
+    """
+    good for class imbalance
+    """
+    inputs = torch.sigmoid(inputs)
+    bce = F.binary_cross_entropy(inputs, target, reduction='mean')
+    bce_exp = torch.exp(-bce)
+    focal_loss = alpha * (1-bce_exp)**gamma * bce
+    return focal_loss
+
+def tversky_loss(inputs, target, alpha=0.5, beta=0.5, eps=1e-6):
+    """
+    generalization of Dice and Jaccard loss
+    alpha and beta control penalties for FP and FN
+    """
+    inputs = torch.sigmoid(inputs)
+    
+    # Flatten the tensors
+    inputs = inputs.view(-1)
+    target = target.view(-1)
+    
+    TP = (inputs * target).sum()
+    FP = ((1-target) * inputs).sum()
+    FN = (target * (1-inputs)).sum()
+    
+    tversky = (TP + eps) / (TP + alpha*FP + beta*FN + eps)  
+    return 1 - tversky
 
 def train_bce_dice_loss(loss_fn, model,
           train_loader,
