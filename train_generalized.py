@@ -5,6 +5,7 @@ import torch.nn as nn
 import torch.optim as optim
 from tqdm import tqdm
 from datetime import datetime
+from typing import Type, Optional, Dict, Tuple, Any
 
 from util import dice_coefficient, iou_score
 
@@ -14,6 +15,8 @@ def train(model,
           device,
           epochs: int = 10,
           lr: float = 1e-3,
+          lr_sched_cls: Optional[Type[torch.optim.lr_scheduler._LRScheduler]] = None,
+          lr_sched_kwargs: Optional[Dict[str, Any]] = None,
           optimizer_class=optim.Adam,
           loss_fn=nn.BCEWithLogitsLoss,
           task: str = "segmentation",  # "segmentation" or "classification"
@@ -29,6 +32,11 @@ def train(model,
         device: CPU or GPU.
         epochs: Number of epochs.
         lr: Learning rate.
+        lr_sched_cls (Type[_LRScheduler] | None):
+                             Pass the *class* of a PyTorch scheduler
+                             (e.g. torch.optim.lr_scheduler.StepLR).
+                             Leave None to disable scheduling.
+        lr_sched_kwargs (dict | None): Extra kwargs forwarded to lr_sched_cls.
         optimizer_class: Optimizer class.
         loss_fn: Loss function factory (nn.BCEWithLogitsLoss or nn.CrossEntropyLoss).
         task: "segmentation" or "classification".
@@ -50,6 +58,12 @@ def train(model,
 
     model = model.to(device)
     optimizer = optimizer_class(model.parameters(), lr=lr)
+
+    scheduler = None
+    if lr_sched_cls is not None:
+        lr_sched_kwargs = lr_sched_kwargs or {}
+        scheduler = lr_sched_cls(optimizer, **lr_sched_kwargs)
+    
     criterion = loss_fn()
 
     if task == "segmentation":
@@ -154,6 +168,10 @@ def train(model,
         print(f"Epoch {epoch}/{epochs} - Avg Train Loss: {avg_loss:.4f}")
 
         model.eval()
+
+        if scheduler is not None:
+            scheduler.step()
+        
         if task == "segmentation":
             val_loss, val_dice, val_iou = evaluate(val_loader)
             history["train_loss"].append(avg_loss)
@@ -183,5 +201,6 @@ def train(model,
         "history": history,
         "val_loader": val_loader,
         "device": device,
+        "scheduler": scheduler,
         "save_path": str(checkpoint_path)
     }
