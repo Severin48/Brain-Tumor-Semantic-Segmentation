@@ -6,8 +6,51 @@ import torch.optim as optim
 from tqdm import tqdm
 from datetime import datetime
 from typing import Type, Optional, Dict, Tuple, Any
-
+import torch.nn.functional as F
 from util import dice_coefficient, iou_score
+
+def dice_loss(inputs, target, eps=1e-6):
+    inputs = torch.sigmoid(inputs)
+    intersection = 2.0 * ((target * inputs).sum()) + eps
+    union = target.sum() + inputs.sum() + eps
+
+    return 1 - (intersection / union)
+
+def bce_loss(inputs, target):
+    loss_fn = nn.BCEWithLogitsLoss()
+    bce_loss = loss_fn(inputs, target)
+    return bce_loss
+
+def bce_dice_loss(inputs, target, smoothing_factor=0.9):
+    bce_score = bce_loss(inputs, target)
+    dice_score = dice_loss(inputs, target)
+
+    # dynamic weighting based on scores + smoothing to prevent low training
+    bce_weight = smoothing_factor * bce_score.item() / (bce_score.item() + dice_score.item() + 1e-8) + (1 - smoothing_factor)
+    dice_weight = smoothing_factor * dice_score.item() / (bce_score.item() + dice_score.item() + 1e-8) + (1 - smoothing_factor)
+    #print(f"bce_weight: {bce_weight:.4f}, dice_weight: {dice_weight:.4f}")
+    return bce_weight * bce_score + dice_weight * dice_score
+
+def focal_loss(inputs, target, alpha=0.8, gamma=2):
+    inputs = torch.sigmoid(inputs)
+    bce = F.binary_cross_entropy(inputs, target, reduction='mean')
+    bce_exp = torch.exp(-bce)
+    focal_loss = alpha * (1-bce_exp)**gamma * bce
+    return focal_loss
+
+def tversky_loss(inputs, target, alpha=0.5, beta=0.5, eps=1e-6):
+    inputs = torch.sigmoid(inputs)
+    
+    # Flatten the tensors
+    inputs = inputs.view(-1)
+    target = target.view(-1)
+    
+    TP = (inputs * target).sum()
+    FP = ((1-target) * inputs).sum()
+    FN = (target * (1-inputs)).sum()
+    
+    tversky = (TP + eps) / (TP + alpha*FP + beta*FN + eps)  
+    return 1 - tversky
 
 def train(model,
           train_loader,
