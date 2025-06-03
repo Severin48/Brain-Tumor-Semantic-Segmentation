@@ -212,3 +212,31 @@ def evaluate_classification(results: dict, num_batches: int = 1, class_names: li
 
     final_acc = correct / total if total > 0 else 0.0
     print(f"Final Val Accuracy: {final_acc:.4f}")
+
+def evaluate_losses(results_list, labels_list):
+    """
+    Evaluates and plots val dice scores for different loss functions
+
+    Args:
+        results_list: list of histories of a training runs
+        labels_list: list of strings (name of loss used)
+    """
+    epochs = range(len(results_list[0]['history']['val_dice']))
+
+    plt.figure(figsize=(10, 6))
+    markers = ['o', 'x', '.', 's', '^', '*', '+']
+
+    for i, results in enumerate(results_list):
+        if i < len(markers):
+            marker = markers[i]
+        else:
+            marker = 'o'
+
+        plt.plot(epochs, results['history']['val_dice'], label=labels_list[i], marker=marker)
+
+    plt.xlabel('Epochs')
+    plt.ylabel('Validation Dice Score')
+    plt.title('Comparison of Validation Dice Scores')
+    plt.legend()
+    plt.grid(True)
+    plt.show()
