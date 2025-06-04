@@ -5,7 +5,7 @@ import torch.nn as nn
 import torch.optim as optim
 from tqdm import tqdm
 from datetime import datetime
-from typing import Type, Optional, Dict, Tuple, Any
+from typing import Type, Optional, Dict, Tuple, Any, Callable
 import torch.nn.functional as F
 from util import dice_coefficient, iou_score
 
@@ -61,7 +61,7 @@ def train(model,
           lr_sched_cls: Optional[Type[torch.optim.lr_scheduler._LRScheduler]] = None,
           lr_sched_kwargs: Optional[Dict[str, Any]] = None,
           optimizer_class=optim.Adam,
-          loss_fn=nn.BCEWithLogitsLoss,
+          loss_fn: Callable = bce_loss, # Callable means it can be a function (bce_loss) or a class (nn.BCEWithLogitsLoss)
           task: str = "segmentation",  # "segmentation" or "classification"
           save_dir: str = "checkpoints",
           save_name: str | None = None):
@@ -81,7 +81,7 @@ def train(model,
                              Leave None to disable scheduling.
         lr_sched_kwargs (dict | None): Extra kwargs forwarded to lr_sched_cls.
         optimizer_class: Optimizer class.
-        loss_fn: Loss function factory (nn.BCEWithLogitsLoss or nn.CrossEntropyLoss).
+        loss_fn: Loss function or class.
         task: "segmentation" or "classification".
         save_dir: Directory to save checkpoints.
         save_name: Filename for the checkpoint.
@@ -107,7 +107,10 @@ def train(model,
         lr_sched_kwargs = lr_sched_kwargs or {}
         scheduler = lr_sched_cls(optimizer, **lr_sched_kwargs)
     
-    criterion = loss_fn()
+    if isinstance(loss_fn, type):
+        criterion = loss_fn()   # Instantiate if its a class (e.g., nn.BCEWithLogitsLoss)
+    else:
+        criterion = loss_fn     # Use directly if its a function (e.g., dice_loss)
 
     if task == "segmentation":
         history = {"train_loss": [], "val_loss": [], "val_dice": [], "val_iou": []}
