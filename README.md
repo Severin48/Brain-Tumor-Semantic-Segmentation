@@ -44,9 +44,9 @@ We use 06 -> 20 Jun as a buffer, depending on vanilla U-Net progress.
 | ----------------------- | ----------------------------------------------------------------- | ---------------------------------------------------------- | :--: |
 | **≤ 09 May**            | **Research** – dataset inspection, planning                       | Timeline, Architecture choice, repo, define Metrics        | ✅   |
 | **09 → 16 May**         | **Project & Data Setup → Baseline**                               | Training notebook/script, first evaluation, short Report   | ✅   |
-| **16 → 23 May**         | **Classic U‑Net** – Implement vanilla U‑Net                       | Working Model, first segmentation examples                 | ☐    |
-| **23 → 30 May**         | **Classic U‑Net** – Implement and test on valdata                 | Metrics table, qualitative segmentation examples           | ☐    |
-| **30 May → 06 Jun**     | **U‑Net tuning and eval** –  Regularization, pre/post‑processing? | Full evaluation on testdata, extended Report               | ☐    |
+| **16 → 23 May**         | **Classic U‑Net** – Implement vanilla U‑Net                       | Working Model, first segmentation examples                 | ✅   |
+| **23 → 30 May**         | **Classic U‑Net** – Implement and test on valdata + Binary Model  | Metrics table, qualitative segmentation examples           | ✅   |
+| **30 May → 06 Jun**     | **U‑Net tuning and eval explo** –  Regularization, tuning         | Ideas on how to finetune, make model  more complex         | ☐    |
 | **06 → 20 Jun**         | **Advanced U‑Net** – Implement, tune, test                        | This is optional, depends on progress                      | ☐    |
 | **20 → 27 Jun**         | **Docu and Slides** – Prepare Presenation                         | Final report, slides                                       | ☐    |
 
@@ -69,9 +69,15 @@ _All metrics are logged per‑epoch and summarized on the validation dataset; Ho
 
 ---
 ## 5 – Upcoming Questions for Meetup
+**30rd May**:
+- Overlap GT image and masks with opacity
+- 
+
+
 **23rd May**:
 - Binary classification on whole dataset and then reuse the whole dataset for mask prediction?
 - Further handling of data
+- More detailed Dataexploration
 
 **16th May**:
 - Metric accuracy not useful for masks with 90%+ black pixels
@@ -90,20 +96,23 @@ _All metrics are logged per‑epoch and summarized on the validation dataset; Ho
 ## 6 - Current tasks
 | Task                                                                                     | Assigned To | Done  |
 |------------------------------------------------------------------------------------------|-------------|-------|
-| Plot + eval before first epoch                                                           | Severin     | ✅   |
-| Binary classification first and only segment on positive cases                           | Severin     | ☐    |
-| Filter dataset only ones with masks and evaluate                                         | Severin     | ✅   |
-| Detailed data description: % of empty/black masks, total samples, positives vs negatives | Aaron       | ☐    |
-| Artifacts, more data exploration, % of images with masks sum > 0                         | Aaron       | ☐    |
-| Val dice + IoU starts high - Find out the cause                                          | Marco       | ☐    |
+| Plot + eval before first epoch                                                           | Severin     | ✅    |
+| Binary classification first                                                              | Aaron       | ✅    |
+| Filter dataset only ones with masks and evaluate                                         | Severin     | ✅    |
+| Detailed data description: % of empty/black masks, total samples, positives vs negatives | Aaron       | ✅    |
+| Artifacts, more data exploration, % of images with masks sum > 0                         | Aaron       | ✅    |
+| Val dice + IoU starts high - Find out the cause                                          | Marco       | ✅    |
+| Overlap gt and prediction with lower opacity                                             | Severin     | ✅    |
+| Hyperparameter exploration                                                               | Marco       | ✅    |
+| Komplexeres Modell                                                                       |             |       |
+| Hyperparameter tuning                                                                    |             |       |
+| Inferenzpipeline                                                                         |             |       |
+
 
 Later:
 - bce_score + dice_score  # Check scales
-- Overlap image, prediction, mask (with alpha)
-- Ratio of black images (65%) as baseline for binary classification
 - Check some sample images to see how a threshold looks e.g. classify as tumor as soon as 1% of the pixels is > 0
   
-- Data augmentation should be reasonable when needed - sklearn function whether more data would help
 - Later add early stopping
 - Hyperparameter search/Model tuning --> Grid search
 - Bias-variance tradeoff visualization, evaluate under-/overfitting, explain choice of model complexity
