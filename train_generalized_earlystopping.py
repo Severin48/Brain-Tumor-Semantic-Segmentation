@@ -186,7 +186,7 @@ def train(model,
             if task == "segmentation":
                 loop.set_postfix(train_loss=f"{avg_loss:.4f}")
 
-        print(f"Epoch {epoch}/{epochs} - Avg Train Loss: {avg_loss:.4f}")
+        #print(f"Epoch {epoch}/{epochs} - Avg Train Loss: {avg_loss:.4f}")
 
         model.eval()
 
