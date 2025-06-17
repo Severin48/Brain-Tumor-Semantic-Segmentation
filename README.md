@@ -46,7 +46,7 @@ We use 06 -> 20 Jun as a buffer, depending on vanilla U-Net progress.
 | **09 → 16 May**         | **Project & Data Setup → Baseline**                               | Training notebook/script, first evaluation, short Report   | ✅   |
 | **16 → 23 May**         | **Classic U‑Net** – Implement vanilla U‑Net                       | Working Model, first segmentation examples                 | ✅   |
 | **23 → 30 May**         | **Classic U‑Net** – Implement and test on valdata + Binary Model  | Metrics table, qualitative segmentation examples           | ✅   |
-| **30 May → 06 Jun**     | **U‑Net tuning and eval explo** –  Regularization, tuning         | Ideas on how to finetune, make model  more complex         | ☐    |
+| **30 May → 06 Jun**     | **U‑Net tuning and eval explo** –  Regularization, tuning         | Ideas on how to finetune, make model  more complex         | ✅   |
 | **06 → 20 Jun**         | **Advanced U‑Net** – Implement, tune, test                        | This is optional, depends on progress                      | ☐    |
 | **20 → 27 Jun**         | **Docu and Slides** – Prepare Presenation                         | Final report, slides                                       | ☐    |
 
@@ -69,6 +69,9 @@ _All metrics are logged per‑epoch and summarized on the validation dataset; Ho
 
 ---
 ## 5 – Upcoming Questions for Meetup
+**20. July FINAL MEETING**:
+- Data Augmentation on the fly or static?
+
 **06 June**:
 - 
 - 
@@ -107,9 +110,12 @@ _All metrics are logged per‑epoch and summarized on the validation dataset; Ho
 | Val dice + IoU starts high - Find out the cause                                          | Marco       | ✅    |
 | Overlap gt and prediction with lower opacity                                             | Severin     | ✅    |
 | Hyperparameter exploration                                                               | Marco       | ✅    |
+| Data augmentation on the fly                                                             | Aaron       | ✅    |
+| Data augmentation static on dataset                                                      | Aaron       |       |
 | Komplexeres Modell                                                                       |             |       |
 | Hyperparameter tuning                                                                    |             |       |
 | Inferenzpipeline                                                                         |             |       |
+
 
 
 Later:

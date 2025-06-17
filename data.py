@@ -12,6 +12,8 @@ from torch.utils.data import Dataset, DataLoader
 from torchvision import transforms
 from sklearn.model_selection import train_test_split
 from util import extract_index
+import albumentations as A
+from albumentations.pytorch import ToTensorV2
 
 OS_PREFIX = "D:/data/" if platform.system() == "Windows" else ""
 DATA_PATH = OS_PREFIX + "kaggle/input/lgg-mri-segmentation/kaggle_3m/"
@@ -31,22 +33,22 @@ class MRIDataset(Dataset):
         mask_path = self.df.loc[idx, "mask_path"]
 
         image = cv2.imread(img_path)
-        image = cv2.resize(image, (IMG_SIZE, IMG_SIZE))
         image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-
         mask = cv2.imread(mask_path, cv2.IMREAD_GRAYSCALE)
-        mask = cv2.resize(mask, (IMG_SIZE, IMG_SIZE))
-        mask = (mask > 0).astype(np.float32)  # binary mask
+        mask = (mask > 0).astype(np.float32)
 
         if self.transform:
-            image = self.transform(image)
-            mask = torch.from_numpy(mask).unsqueeze(0)  # (1, H, W)
+            augmented = self.transform(image=image, mask=mask)
+            image = augmented['image']           # already Tensor
+            mask = augmented['mask'].unsqueeze(0) # (1, H, W)
         else:
+            image = cv2.resize(image, (IMG_SIZE, IMG_SIZE))
             image = torch.from_numpy(image.transpose(2, 0, 1)).float() / 255.0
+            mask = cv2.resize(mask, (IMG_SIZE, IMG_SIZE))
             mask = torch.from_numpy(mask).unsqueeze(0)
 
         return image, mask
-
+        
 class MRIDatasetBinary(Dataset):
     """
     Dataset that transforms the segmentation data into binary labels.
@@ -62,23 +64,20 @@ class MRIDatasetBinary(Dataset):
 
     def __getitem__(self, idx):
         img_path = self.df.loc[idx, "image_path"]
-        
         image = cv2.imread(img_path)
-        image = cv2.resize(image, (IMG_SIZE, IMG_SIZE))
         image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-        if self.transform:
-            image = self.transform(image)
-        else:
-            image = torch.from_numpy(image.transpose(2, 0, 1)).float() / 255.0
-        
 
         mask_path = self.df.loc[idx, "mask_path"]
         mask = cv2.imread(mask_path, cv2.IMREAD_GRAYSCALE)
-        mask = cv2.resize(mask, (IMG_SIZE, IMG_SIZE))
-   
         binary_label = 1 if np.max(mask) > 0 else 0
-        
-    
+
+        if self.transform:
+            augmented = self.transform(image=image)
+            image = augmented['image']
+        else:
+            image = cv2.resize(image, (IMG_SIZE, IMG_SIZE))
+            image = torch.from_numpy(image.transpose(2, 0, 1)).float() / 255.0
+
         return image, torch.tensor(binary_label, dtype=torch.long)
         
 def load_mri_dataframe(data_path=DATA_PATH):
@@ -115,30 +114,56 @@ def load_mri_dataframe(data_path=DATA_PATH):
 
     df_final["diagnosis"] = df_final["mask_path"].apply(positive_negative_diagnosis)
     return df_final
+    
+def get_albu_augmentation(img_size=256):
+    return A.Compose([
+        A.HorizontalFlip(p=0.5),
+        A.VerticalFlip(p=0.1),
+        A.Affine(
+            translate_percent=0.05, 
+            rotate=10,         
+            shear=5, 
+            p=0.5
+        ),
+        A.RandomBrightnessContrast(
+            brightness_limit=0.1, 
+            contrast_limit=0.1, 
+            p=0.2
+        ),
+        # auswirkung checken, siehe dataexploration!
+        # A.ElasticTransform(alpha=0.5, sigma=10, p=0.05),
+        A.Resize(img_size, img_size),
+        A.Normalize(),  
+        ToTensorV2()
+    ])
+
+def get_albu_img_transform(img_size=256):
+    #macht aus Rohbildern gleiche Format wie train_transform (nur eben ohne Augmentation)! wichtig
+    return A.Compose([
+        A.Resize(img_size, img_size),
+        A.Normalize(),    
+        ToTensorV2()
+    ])
 
 def get_dataloaders(
     df: pd.DataFrame,
     batch_size: int = 8,
     val_split: float = 0.2,
     shuffle: bool = True,
-    transform: transforms.Compose | None = None,
-    omit_empty_masks: bool = False,
-    ) -> Tuple[DataLoader, DataLoader]:
-    """Return *(train_loader, val_loader)*.
-
-    If omit_empty_masks is True, rows whose masks are completely black
-    (diagnosis == 0) are discarded after the train/val split (so each
-    split is filtered independently and keeps its original size ratio).
-    """
+    augment: bool = False,
+    omit_empty_masks: bool = False
+) -> Tuple[DataLoader, DataLoader]:
 
     train_df, val_df = train_test_split(df, test_size=val_split, random_state=48)
-
     if omit_empty_masks:
         train_df = train_df[train_df["diagnosis"] == 1].reset_index(drop=True)
         val_df   = val_df[val_df["diagnosis"] == 1].reset_index(drop=True)
 
-    train_ds = MRIDataset(train_df, transform=transform)
-    val_ds   = MRIDataset(val_df,   transform=transform)
+    train_transform = get_albu_augmentation(IMG_SIZE) if augment else get_albu_img_transform(IMG_SIZE)
+    val_transform = get_albu_img_transform(IMG_SIZE)
+
+    train_ds = MRIDataset(train_df, transform=train_transform)
+    val_ds   = MRIDataset(val_df, transform=val_transform)
 
     train_loader = DataLoader(train_ds, batch_size=batch_size, shuffle=shuffle)
     val_loader   = DataLoader(val_ds,   batch_size=batch_size, shuffle=False)
@@ -151,17 +176,10 @@ def get_dataloader_binarytransformed(
     batch_size: int = 8,
     val_split: float = 0.2,
     shuffle: bool = True,
-    transform: transforms.Compose | None = None,
-    omit_empty_masks: bool = False,
+    augment: bool = False,
+    omit_empty_masks: bool = False
 ) -> Tuple[DataLoader, DataLoader]:
-    """
-    Creates and returns (train_loader, val_loader) for the binary classification
-    task. It transforms the segmentation mask to a binary label (tumor/no tumor).
-    
-    Parameter omit_empty_masks can be used to filter out samples that do not exhibit a tumor.
-    """
     train_df, val_df = train_test_split(df, test_size=val_split, random_state=48)
-
     if omit_empty_masks:
         train_df = train_df[train_df.apply(
             lambda row: np.max(cv2.imread(row['mask_path'], cv2.IMREAD_GRAYSCALE)) > 0, axis=1)
@@ -170,12 +188,14 @@ def get_dataloader_binarytransformed(
             lambda row: np.max(cv2.imread(row['mask_path'], cv2.IMREAD_GRAYSCALE)) > 0, axis=1)
         ].reset_index(drop=True)
 
-    train_ds = MRIDatasetBinary(train_df, transform=transform)
-    val_ds   = MRIDatasetBinary(val_df, transform=transform)
+    train_transform = get_albu_img_transform(IMG_SIZE) if not augment else get_albu_augmentation(IMG_SIZE)
+    val_transform = get_albu_img_transform(IMG_SIZE)
+
+    train_ds = MRIDatasetBinary(train_df, transform=train_transform)
+    val_ds   = MRIDatasetBinary(val_df, transform=val_transform)
 
     train_loader = DataLoader(train_ds, batch_size=batch_size, shuffle=shuffle)
     val_loader   = DataLoader(val_ds, batch_size=batch_size, shuffle=False)
 
     print("[Data] (Binary) Train samples:", len(train_ds), "; Val samples:", len(val_ds))
     return train_loader, val_loader
-
