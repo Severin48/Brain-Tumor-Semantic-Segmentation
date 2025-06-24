@@ -154,10 +154,33 @@ def get_dataloaders(
     omit_empty_masks: bool = False
 ) -> Tuple[DataLoader, DataLoader]:
 
-    train_df, val_df = train_test_split(df, test_size=val_split, random_state=48)
+
     if omit_empty_masks:
-        train_df = train_df[train_df["diagnosis"] == 1].reset_index(drop=True)
-        val_df   = val_df[val_df["diagnosis"] == 1].reset_index(drop=True)
+        df = df[df["diagnosis"] == 1].reset_index(drop=True)
+
+    train_df, val_df = train_test_split(df, test_size=val_split, random_state=48)
+
+    train_transform = get_albu_augmentation(IMG_SIZE) if augment else get_albu_img_transform(IMG_SIZE)
+    val_transform = get_albu_img_transform(IMG_SIZE)
+
+    train_ds = MRIDataset(train_df, transform=train_transform)
+    val_ds   = MRIDataset(val_df, transform=val_transform)
+
+    train_loader = DataLoader(train_ds, batch_size=batch_size, shuffle=shuffle)
+    val_loader   = DataLoader(val_ds,   batch_size=batch_size, shuffle=False)
+
+    print("[Data] Train images:", len(train_ds), "; Val images:", len(val_ds))
+    return train_loader, val_loader
+
+def get_dataloaders_from_dfs(
+    train_df: pd.DataFrame,
+    val_df: pd.DataFrame,
+    batch_size: int = 8,
+    shuffle: bool = True,
+    augment: bool = False,
+    omit_empty_masks: bool = False  # not needed, since already filtered in hyperparameter_search.py
+) -> Tuple[DataLoader, DataLoader]:
+
 
     train_transform = get_albu_augmentation(IMG_SIZE) if augment else get_albu_img_transform(IMG_SIZE)
     val_transform = get_albu_img_transform(IMG_SIZE)

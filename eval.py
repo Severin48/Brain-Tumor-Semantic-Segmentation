@@ -8,19 +8,14 @@ from util import dice_coefficient, iou_score
 
 
 def evaluate(results: dict, num_batches: int = 1, alpha: float = 0.35) -> None:
-    """Visualise training curves and qualitative segmentation results.
-
-    Args:
-        results (dict): output of `train()` (see train.py).
-        num_batches (int): how many *validation* batches to show.
-        alpha (float): transparency of the mask overlays.
+    """Visualise training curves and qualitative segmentation results
+    Plots both validation (CV) and test metrics if available
     """
     model      = results["model"]
     history    = results["history"]
     val_loader = results["val_loader"]
     device     = results["device"]
 
-    # Graphs
     epochs = range(len(history["train_loss"]))
 
     # Final scores
@@ -32,21 +27,27 @@ def evaluate(results: dict, num_batches: int = 1, alpha: float = 0.35) -> None:
             dices.append(dice_coefficient(outs, masks))
             ious.append(iou_score(outs, masks))
 
-    print(f"Final Val Dice: {sum(dices)/len(dices):.4f}")
-    print(f"Final Val IoU : {sum(ious)/len(ious):.4f}")
+    print(f"Final Test Dice: {sum(dices)/len(dices):.4f}")
+    print(f"Final Test IoU : {sum(ious)/len(ious):.4f}")
 
     plt.figure(figsize=(12, 4))
 
     plt.subplot(1, 2, 1)
     plt.plot(epochs, history["train_loss"], label="Train loss")
-    plt.plot(epochs, history["val_loss"],   label="Val loss")
+    plt.plot(epochs, history["val_loss"],   label="Test loss")
     plt.xlabel("Epoch"); plt.ylabel("BCE-loss"); plt.title("Loss curves")
     plt.grid(True); plt.legend()
 
     plt.subplot(1, 2, 2)
-    plt.plot(epochs, history["val_dice"], label="Val Dice")
-    plt.plot(epochs, history["val_iou"],  label="Val IoU")
-    plt.xlabel("Epoch"); plt.ylabel("Score"); plt.title("Validation metrics")
+    # Plot test (held-out) metrics
+    plt.plot(epochs, history["val_dice"], label="Test Dice")
+    plt.plot(epochs, history["val_iou"],  label="Test IoU")
+    # Plot validation (CV) metrics if available
+    if "cv_val_dice" in history:
+        plt.plot(epochs, history["cv_val_dice"], label="Val Dice", linestyle="--")
+    if "cv_val_iou" in history:
+        plt.plot(epochs, history["cv_val_iou"], label="Val IoU", linestyle="--")
+    plt.xlabel("Epoch"); plt.ylabel("Score"); plt.title("Validation/Test metrics")
     plt.grid(True); plt.legend()
 
     plt.tight_layout(); plt.show()

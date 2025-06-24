@@ -28,15 +28,6 @@ def bce_dice_loss(inputs, target, smoothing_factor=0.9):
     loss = smoothing_factor * bce + (1 - smoothing_factor) * dice
     return loss
 
-
-def focal_loss(inputs, target, alpha=0.8, gamma=2):
-    inputs = torch.sigmoid(inputs)
-    bce = bce_loss(inputs, target)
-    bce_exp = torch.exp(-bce)
-    focal_loss = alpha * (1 - bce_exp) ** gamma * bce
-    return focal_loss
-
-
 def tversky_loss(inputs, target, alpha=0.5, beta=0.5, eps=1e-6):
     inputs = torch.sigmoid(inputs)
     intersection = (inputs * target).sum()
@@ -58,7 +49,8 @@ def train(model,
           loss_fn: Callable = bce_loss,
           task: str = "segmentation",
           save_dir: str = "checkpoints",
-          save_name: str | None = None):
+          save_name: str | None = None,
+          early_stopping: bool = True):
     """
     Universal training function for segmentation and binary classification with early stopping.
     """
@@ -201,17 +193,23 @@ def train(model,
             history["val_iou"].append(val_iou)
 
             # Early stopping
-            if val_dice > (last_best_metric + min_delta):
-                best_metric = val_dice
-                best_weights = model.state_dict()
-                epochs_without_improvement = 0
-                last_best_metric = val_dice
-            else:
-                epochs_without_improvement += 1
+            if early_stopping:
+                if val_dice > (last_best_metric + min_delta):
+                    best_metric = val_dice
+                    best_weights = model.state_dict()
+                    epochs_without_improvement = 0
+                    last_best_metric = val_dice
+                else:
+                    epochs_without_improvement += 1
 
-            if epochs_without_improvement >= patience:
-                print(f"Stopped early at epoch {epoch}!")
-                break  # Stop training
+                if epochs_without_improvement >= patience:
+                    print(f"Stopped early at epoch {epoch}!")
+                    break  # Stop training
+            else:
+                if val_dice > (last_best_metric + min_delta):
+                    best_metric = val_dice
+                    best_weights = model.state_dict()
+                    last_best_metric = val_dice
 
             loop.set_postfix(train=f"{avg_loss:.4f}", val=f"{val_loss:.4f}", dice=f"{val_dice:.4f}", iou=f"{val_iou:.4f}")
         if task == "classification":
