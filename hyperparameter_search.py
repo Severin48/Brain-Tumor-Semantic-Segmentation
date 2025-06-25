@@ -2,28 +2,30 @@ import optuna
 import torch
 from train_generalized_earlystopping import train, bce_loss
 from data import load_mri_dataframe, get_dataloaders, get_dataloaders_from_dfs
-from BaselineUNetParams import BaselineUNet
+from BaselineUNet import BaselineUNet
 from sklearn.model_selection import KFold
 import numpy as np
 import pandas as pd
 from OriginalUNet import OriginalUNet
 from sklearn.model_selection import train_test_split
+from ImprovedUNet import ImprovedUNet
+import json
+import sys
+import os
 
-def objective(trial, augment=False, task='segmentation', original_model=False, df=None):
+def objective(trial, augment=False, task='segmentation', model_type='baseline', df=None):
     # 1. Define hyperparameters to be optimized
     lr = trial.suggest_float("lr", 1e-5, 1e-2, log=True)
     batch_size = trial.suggest_categorical("batch_size", [4, 8, 16])
     optimizer_name = trial.suggest_categorical("optimizer", ["Adam", "SGD"])
 
-    if original_model:   # dont optimize model parameters for original UNet
-        model = OriginalUNet()
-    else:       
-        num_layers = trial.suggest_int("num_layers", 2, 5)
-        num_filters = trial.suggest_categorical("num_filters", [8, 16, 32])
-        model = BaselineUNet(num_layers=num_layers, num_filters=num_filters)
 
     lr_step_size = trial.suggest_int("step_size", 3, 7)
     lr_gamma = trial.suggest_float("gamma", 0.1, 0.5)
+
+    if model_type == 'improved':    # dont optimize model parameters for original/baseline UNet
+        num_layers = trial.suggest_int("num_layers", 3, 5)
+        num_filters = trial.suggest_categorical("num_filters", [16, 32])
 
     if task == 'segmentation':
         df = df[df["diagnosis"] == 1].reset_index(drop=True)    # filter empty masks before doing the split
@@ -37,6 +39,18 @@ def objective(trial, augment=False, task='segmentation', original_model=False, d
     val_dice_curves = []
 
     for train_idx, val_idx in kf.split(df_trainval):    # apply k-fold on training data only
+        #-- Instantiate model on each fold --# 
+        if model_type == 'original':
+            model = OriginalUNet()
+        else:
+            if model_type == 'baseline':
+                model = BaselineUNet()
+            elif model_type == 'improved':
+                model = ImprovedUNet(
+                    num_layers=trial.params['num_layers'],
+                    num_filters=trial.params['num_filters'],
+                )
+
         df_train = df_trainval.iloc[train_idx].reset_index(drop=True)
         df_val = df_trainval.iloc[val_idx].reset_index(drop=True)
 
@@ -59,7 +73,7 @@ def objective(trial, augment=False, task='segmentation', original_model=False, d
             lr=lr,
             optimizer_class=optimizer_class,
             loss_fn=bce_loss,
-            epochs=100,
+            epochs=30,
             task=task,
             lr_sched_cls=torch.optim.lr_scheduler.StepLR,
             lr_sched_kwargs={"step_size": lr_step_size, "gamma": lr_gamma},
@@ -80,53 +94,59 @@ def objective(trial, augment=False, task='segmentation', original_model=False, d
     trial.set_user_attr("cv_val_dice", cv_val_dice.tolist())
     return np.mean(val_dices)
 
-def create_study(n_trials=30, df=None, task='segmentation', original_model=False, augment=False):
+def create_study(n_trials=30, df=None, task='segmentation', model_type='baseline', augment=False):
     study = optuna.create_study(direction="maximize")
-    func = lambda trial: objective(trial, df=df, task='segmentation', original_model=original_model, augment=augment)
+    func = lambda trial: objective(trial, df=df, task=task, model_type=model_type, augment=augment)
     study.optimize(func, n_trials=n_trials)
     return study
 
 if __name__ == "__main__":
-    import pandas as pd
-    study = optuna.create_study(direction="maximize")
-    study.optimize(objective, n_trials=20)
+    # Default params
+    n_trials = 30
+    model_type = 'improved'
+    augment = True
 
-    trial = study.best_trial
-    print("\nBest Validation Dice Score (CV mean): {:.4f}".format(trial.value))
-    print("\nWith Parameters:")
-    for key, value in trial.params.items():
-        print("   {}: {}".format(key, value))
+    # Parse command line arguments if provided
+    if len(sys.argv) > 1:
+        try:
+            if len(sys.argv) > 1:
+                n_trials = int(sys.argv[1])
+            if len(sys.argv) > 2:
+                if sys.argv[2] not in ['improved', 'baseline', 'original']:
+                    raise ValueError("model_type must be 'improved', 'baseline', or 'original'")
+                model_type = sys.argv[2]
+            if len(sys.argv) > 3:
+                if sys.argv[3].lower() == 'true':
+                    augment = True
+                elif sys.argv[3].lower() == 'false':
+                    augment = False
+                else:
+                    raise ValueError("augment must be True or False")
+        except Exception as e:
+            print("Usage: python hyperparameter_search.py [n_trials:int] [model_type:str] [augment:True|False]")
+            sys.exit(1)
 
-    # --- Final evaluation on held-out test set ---
-    print("\nEvaluating best hyperparameters on held-out test set...")
-    # Reload data and split as before
     df = load_mri_dataframe()
-    from sklearn.model_selection import train_test_split
-    df_trainval, df_test = train_test_split(df, test_size=0.15, random_state=48, stratify=df["diagnosis"])
+    study = create_study(n_trials=n_trials, df=df, model_type=model_type, augment=augment)
+    params = study.best_params
+    trial = study.best_trial
+    dice_val = trial.value
+    print(f"Best trial: {trial.number} with value {dice_val}")
+    best_params_dict = {
+        "model_type": model_type,
+        "n_trials": n_trials,
+        "augment": augment,
+        "params": params,
+        "dice_val": dice_val
+    }
 
-    # Use all trainval for training, test for evaluation
-    train_loader, _ = get_dataloaders(df_trainval, batch_size=trial.params["batch_size"], val_split=0.0, omit_empty_masks=True)
-    _, test_loader = get_dataloaders(df_test, batch_size=trial.params["batch_size"], val_split=0.0, omit_empty_masks=True)
+    
+    json_path = "best_params.json"
+    with open(json_path, "r") as f:
+        data = json.load(f)
 
-    model = BaselineUNet(
-        num_layers=trial.params["num_layers"],
-        num_filters=trial.params["num_filters"]
-    )
-    device = torch.device("cuda")
-    model.to(device)
-    optimizer_class = torch.optim.Adam if trial.params["optimizer"] == "Adam" else torch.optim.SGD
+    # Add results to best_params.json
+    data.append(best_params_dict)
 
-    _, results = train(
-        model,
-        train_loader,
-        test_loader,
-        device,
-        lr=trial.params["lr"],
-        optimizer_class=optimizer_class,
-        loss_fn=bce_loss,
-        epochs=100,
-        lr_sched_cls=torch.optim.lr_scheduler.StepLR,
-        lr_sched_kwargs={"step_size": trial.params["step_size"], "gamma": trial.params["gamma"]},
-    )
-    test_dice = results["history"]["val_dice"][-1]
-    print(f"\nTest Dice Score: {test_dice:.4f}")
+    with open(json_path, "w") as f:
+        json.dump(data, f, indent=4)

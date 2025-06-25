@@ -1,0 +1,17 @@
+[
+    {
+        "model_type": "improved",
+        "n_trials": 30,
+        "augment": true,
+        "params": {
+            "lr": 0.00022062884670065198,
+            "batch_size": 4,
+            "optimizer": "Adam",
+            "step_size": 7,
+            "gamma": 0.49939353507708156,
+            "num_layers": 4,
+            "num_filters": 32
+        },
+        "dice_val": 0.8199046555222297
+    }
+]

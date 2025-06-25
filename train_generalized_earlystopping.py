@@ -77,7 +77,7 @@ def train(model,
         criterion = loss_fn  # Use directly if its a function (e.g., dice_loss)
 
     if task == "segmentation":
-        history = {"train_loss": [], "val_loss": [], "val_dice": [], "val_iou": []}
+        history = {"train_loss": [], "val_loss": [], "val_dice": [], "val_iou": [], "train_dice": []}
         best_metric = -float('inf')
     if task == "classification":
         history = {"train_loss": [], "val_loss": [], "train_acc": [], "val_acc": []}
@@ -130,6 +130,7 @@ def train(model,
         val_loss0, val_dice0, val_iou0 = evaluate(val_loader)
         history["train_loss"].append(train_loss0)
         history["val_loss"].append(val_loss0)
+        history["train_dice"].append(train_dice0)
         history["val_dice"].append(val_dice0)
         history["val_iou"].append(val_iou0)
         best_metric = val_dice0
@@ -187,8 +188,10 @@ def train(model,
 
         if task == "segmentation":
             val_loss, val_dice, val_iou = evaluate(val_loader)
+            train_loss, train_dice, train_iou = evaluate(train_loader)
             history["train_loss"].append(avg_loss)
             history["val_loss"].append(val_loss)
+            history["train_dice"].append(train_dice)
             history["val_dice"].append(val_dice)
             history["val_iou"].append(val_iou)
 

@@ -39,15 +39,11 @@ def evaluate(results: dict, num_batches: int = 1, alpha: float = 0.35) -> None:
     plt.grid(True); plt.legend()
 
     plt.subplot(1, 2, 2)
-    # Plot test (held-out) metrics
-    plt.plot(epochs, history["val_dice"], label="Test Dice")
-    plt.plot(epochs, history["val_iou"],  label="Test IoU")
-    # Plot validation (CV) metrics if available
-    if "cv_val_dice" in history:
-        plt.plot(epochs, history["cv_val_dice"], label="Val Dice", linestyle="--")
-    if "cv_val_iou" in history:
-        plt.plot(epochs, history["cv_val_iou"], label="Val IoU", linestyle="--")
-    plt.xlabel("Epoch"); plt.ylabel("Score"); plt.title("Validation/Test metrics")
+    # Plot train and val dice
+    if "train_dice" in history:
+        plt.plot(epochs, history["train_dice"], label="Train Dice")
+    plt.plot(epochs, history["val_dice"], label="Val Dice")
+    plt.xlabel("Epoch"); plt.ylabel("Dice Score"); plt.title("Train/Val Dice")
     plt.grid(True); plt.legend()
 
     plt.tight_layout(); plt.show()
