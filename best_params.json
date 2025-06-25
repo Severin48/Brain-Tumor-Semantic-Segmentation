@@ -1,5 +1,6 @@
 [
     {
+        "task": "segmentation",
         "model_type": "improved",
         "n_trials": 30,
         "augment": true,

@@ -105,34 +105,39 @@ if __name__ == "__main__":
     n_trials = 30
     model_type = 'improved'
     augment = True
-
+    task = 'segmentation'
     # Parse command line arguments if provided
     if len(sys.argv) > 1:
         try:
             if len(sys.argv) > 1:
                 n_trials = int(sys.argv[1])
             if len(sys.argv) > 2:
-                if sys.argv[2] not in ['improved', 'baseline', 'original']:
-                    raise ValueError("model_type must be 'improved', 'baseline', or 'original'")
-                model_type = sys.argv[2]
+                if sys.argv[2] not in ['segmentation', 'classification']:
+                    raise ValueError("task must be 'segmentation' or 'classification'")
+                task = sys.argv[2]
             if len(sys.argv) > 3:
-                if sys.argv[3].lower() == 'true':
+                if sys.argv[3] not in ['improved', 'baseline', 'original']:
+                    raise ValueError("model_type must be 'improved', 'baseline', or 'original'")
+                model_type = sys.argv[3]
+            if len(sys.argv) > 4:
+                if sys.argv[4].lower() == 'true':
                     augment = True
-                elif sys.argv[3].lower() == 'false':
+                elif sys.argv[4].lower() == 'false':
                     augment = False
                 else:
                     raise ValueError("augment must be True or False")
         except Exception as e:
-            print("Usage: python hyperparameter_search.py [n_trials:int] [model_type:str] [augment:True|False]")
+            print("Usage: python hyperparameter_search.py [n_trials:int] [task:str] [model_type:str] [augment:True|False]")
             sys.exit(1)
 
     df = load_mri_dataframe()
-    study = create_study(n_trials=n_trials, df=df, model_type=model_type, augment=augment)
+    study = create_study(n_trials=n_trials, df=df, task=task, model_type=model_type, augment=augment)
     params = study.best_params
     trial = study.best_trial
     dice_val = trial.value
     print(f"Best trial: {trial.number} with value {dice_val}")
     best_params_dict = {
+        "task": task,
         "model_type": model_type,
         "n_trials": n_trials,
         "augment": augment,
