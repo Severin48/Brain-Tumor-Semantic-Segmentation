@@ -2,7 +2,7 @@
     {
         "task": "segmentation",
         "model_type": "improved",
-        "n_trials": 30,
+        "n_trials": 40,
         "augment": true,
         "params": {
             "lr": 0.00022062884670065198,
@@ -14,5 +14,67 @@
             "num_filters": 32
         },
         "dice_val": 0.8199046555222297
+    },
+    {
+        "task": "segmentation",
+        "model_type": "baseline",
+        "n_trials": 30,
+        "augment": false,
+        "params": {
+            "lr": 0.00611982566985783,
+            "batch_size": 8,
+            "optimizer": "Adam",
+            "step_size": 7,
+            "gamma": 0.41842218664003056
+        },
+        "dice_val": 0.5664017993171199
+    },
+    {
+        "task": "segmentation",
+        "model_type": "improved",
+        "n_trials": 30,
+        "augment": true,
+        "params": {
+            "lr": 0.00039000893185355744,
+            "batch_size": 16,
+            "optimizer": "Adam",
+            "step_size": 7,
+            "gamma": 0.49962187053362794,
+            "num_layers": 4,
+            "num_filters": 32
+        },
+        "dice_val": 0.7929335761070252
+    },
+    {
+        "task": "segmentation",
+        "model_type": "improved",
+        "n_trials": 30,
+        "augment": false,
+        "params": {
+            "lr": 0.0003277326635210084,
+            "batch_size": 8,
+            "optimizer": "Adam",
+            "step_size": 5,
+            "gamma": 0.44312893714011686,
+            "num_layers": 4,
+            "num_filters": 16
+        },
+        "dice_val": 0.8018970467200895
+    },
+    {
+        "task": "classification",
+        "model_type": "improved",
+        "n_trials": 15,
+        "augment": false,
+        "params": {
+            "lr": 0.003209225248402907,
+            "batch_size": 8,
+            "optimizer": "SGD",
+            "step_size": 7,
+            "gamma": 0.17838906886088451,
+            "num_layers": 5,
+            "num_filters": 32
+        },
+        "dice_val/acc": 0.9212339023659779
     }
 ]

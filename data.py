@@ -158,7 +158,7 @@ def get_dataloaders(
     if omit_empty_masks:
         df = df[df["diagnosis"] == 1].reset_index(drop=True)
 
-    train_df, val_df = train_test_split(df, test_size=val_split, random_state=48)
+    train_df, val_df = train_test_split(df, test_size=val_split, random_state=48, stratify=df["diagnosis"])
 
     train_transform = get_albu_augmentation(IMG_SIZE) if augment else get_albu_img_transform(IMG_SIZE)
     val_transform = get_albu_img_transform(IMG_SIZE)
@@ -197,12 +197,12 @@ def get_dataloaders_from_dfs(
 def get_dataloader_binarytransformed(
     df: pd.DataFrame,
     batch_size: int = 8,
-    val_split: float = 0.2,
+    val_split: float = 0.15,
     shuffle: bool = True,
     augment: bool = False,
     omit_empty_masks: bool = False
 ) -> Tuple[DataLoader, DataLoader]:
-    train_df, val_df = train_test_split(df, test_size=val_split, random_state=48)
+    train_df, val_df = train_test_split(df, test_size=val_split, random_state=48, stratify=df["diagnosis"])
     if omit_empty_masks:
         train_df = train_df[train_df.apply(
             lambda row: np.max(cv2.imread(row['mask_path'], cv2.IMREAD_GRAYSCALE)) > 0, axis=1)
