@@ -222,3 +222,25 @@ def get_dataloader_binarytransformed(
 
     print("[Data] (Binary) Train samples:", len(train_ds), "; Val samples:", len(val_ds))
     return train_loader, val_loader
+
+def get_dataloaders_from_dfs_binary(
+    train_df: pd.DataFrame,
+    val_df: pd.DataFrame,
+    batch_size: int = 8,
+    shuffle: bool = True,
+    augment: bool = False
+) -> Tuple[DataLoader, DataLoader]:
+    """
+    Creates binary classification dataloaders from training and validation dataframes.
+    """
+    train_transform = get_albu_augmentation(IMG_SIZE) if augment else get_albu_img_transform(IMG_SIZE)
+    val_transform = get_albu_img_transform(IMG_SIZE)
+
+    train_ds = MRIDatasetBinary(train_df, transform=train_transform)
+    val_ds   = MRIDatasetBinary(val_df, transform=val_transform)
+
+    train_loader = DataLoader(train_ds, batch_size=batch_size, shuffle=shuffle)
+    val_loader   = DataLoader(val_ds,   batch_size=batch_size, shuffle=False)
+
+    print("[Data] (Binary) Train samples:", len(train_ds), "; Val samples:", len(val_ds))
+    return train_loader, val_loader

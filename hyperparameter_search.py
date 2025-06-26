@@ -1,7 +1,7 @@
 import optuna
 import torch
 from train_generalized_earlystopping import train, bce_loss
-from data import load_mri_dataframe, get_dataloaders, get_dataloaders_from_dfs
+from data import load_mri_dataframe, get_dataloaders_from_dfs, get_dataloaders_from_dfs_binary
 from BaselineUNet import BaselineUNet
 from sklearn.model_selection import KFold
 import numpy as np
@@ -54,14 +54,25 @@ def objective(trial, augment=False, task='segmentation', model_type='baseline', 
         df_train = df_trainval.iloc[train_idx].reset_index(drop=True)
         df_val = df_trainval.iloc[val_idx].reset_index(drop=True)
 
-        train_loader, val_loader = get_dataloaders_from_dfs(    # get dataloaders, but no splits
-            df_train,
-            df_val,
-            batch_size=batch_size,
-            shuffle=True,
-            augment=augment
-        )
-        device = torch.device("cuda")
+        # Select the correct dataloader based on the task
+        if task == 'classification':
+            train_loader, val_loader = get_dataloaders_from_dfs_binary(
+                df_train,
+                df_val,
+                batch_size=batch_size,
+                shuffle=True,
+                augment=augment
+            )
+        else:  # segmentation
+            train_loader, val_loader = get_dataloaders_from_dfs(
+                df_train,
+                df_val,
+                batch_size=batch_size,
+                shuffle=True,
+                augment=augment
+            )
+        
+        device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
         model.to(device)
         optimizer_class = torch.optim.Adam if optimizer_name == "Adam" else torch.optim.SGD
 
@@ -73,13 +84,18 @@ def objective(trial, augment=False, task='segmentation', model_type='baseline', 
             lr=lr,
             optimizer_class=optimizer_class,
             loss_fn=bce_loss,
-            epochs=30,
+            epochs=1,
             task=task,
             lr_sched_cls=torch.optim.lr_scheduler.StepLR,
             lr_sched_kwargs={"step_size": lr_step_size, "gamma": lr_gamma},
         )
-        val_dices.append(results["history"]["val_dice"][-1])
-        val_dice_curves.append(results["history"]["val_dice"])
+        if task == 'classification':
+            # For classification, we use accuracy as the metric
+            val_dices.append(results["history"]["val_acc"][-1])
+            val_dice_curves.append(results["history"]["val_acc"])
+        else:
+            val_dices.append(results["history"]["val_dice"][-1])
+            val_dice_curves.append(results["history"]["val_dice"])
 
     # Pad curves to the same length (in case of early stopping)
     max_len = max(len(curve) for curve in val_dice_curves)
@@ -142,7 +158,7 @@ if __name__ == "__main__":
         "n_trials": n_trials,
         "augment": augment,
         "params": params,
-        "dice_val": dice_val
+        "dice_val/acc": dice_val
     }
 
     

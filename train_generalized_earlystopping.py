@@ -71,10 +71,12 @@ def train(model,
         lr_sched_kwargs = lr_sched_kwargs or {}
         scheduler = lr_sched_cls(optimizer, **lr_sched_kwargs)
 
-    if isinstance(loss_fn, type):
-        criterion = loss_fn()  # Instantiate if its a class (e.g., nn.BCEWithLogitsLoss)
+    if loss_fn == bce_loss:
+        criterion = nn.BCEWithLogitsLoss()
+    elif isinstance(loss_fn, type):
+        criterion = loss_fn()
     else:
-        criterion = loss_fn  # Use directly if its a function (e.g., dice_loss)
+        criterion = loss_fn
 
     if task == "segmentation":
         history = {"train_loss": [], "val_loss": [], "val_dice": [], "val_iou": [], "train_dice": []}
@@ -109,17 +111,23 @@ def train(model,
         if task == "classification":
             correct, total = 0, 0
             for images, labels in loader:
-                images = images.to(device)
-                labels = labels.to(device).long()
-                outputs = model(images)
-                total_loss += criterion(outputs, labels).item()
-                if isinstance(criterion, nn.CrossEntropyLoss):
-                    preds = torch.argmax(outputs, dim=1)
-                else:
-                    mask_pred = (torch.sigmoid(outputs) > 0.5)
-                    preds = mask_pred.view(mask_pred.size(0), -1).any(dim=1).long() # Flattens each mask to a nx1 vector and checks if any pixel is positive
-                correct += (preds == labels).sum().item()
-                total += labels.size(0)
+                images, labels_on_device = images.to(device), labels.to(device)
+                outputs = model(images) # Shape: (B, 1, H, W)
+
+                # Derive a classification logit from the mask output
+                # We use the max logit value across spatial dimensions
+                class_outputs = torch.max(outputs.view(outputs.size(0), -1), dim=1).values
+
+                # BCE loss expects a float target
+                labels_float = labels_on_device.float()
+                
+                total_loss += criterion(class_outputs, labels_float).item()
+                
+                # Accuracy is calculated based on whether any pixel is positive in the mask
+                mask_pred = (torch.sigmoid(outputs) > 0.5)
+                preds = mask_pred.view(mask_pred.size(0), -1).any(dim=1).long()
+                correct += (preds == labels_on_device).sum().item()
+                total += labels_on_device.size(0)
             avg_loss = total_loss / len(loader)
             avg_acc = correct / total if total > 0 else 0.0
             return avg_loss, avg_acc
@@ -150,38 +158,39 @@ def train(model,
     for epoch in range(1, epochs + 1):  # Loop through epochs
         model.train()
         running_loss = 0.0
-        correct = 0
-        total = 0
+        correct, total = 0, 0
 
         loop = tqdm(train_loader, desc=f"Epoch {epoch}/{epochs}", leave=False)
         for inputs, targets in loop:
-            inputs, targets = inputs.to(device), targets.to(device)
+            inputs, targets_on_device = inputs.to(device), targets.to(device)
 
             optimizer.zero_grad()
             outputs = model(inputs)
 
-            loss = criterion(outputs, targets)
-            loss.backward()
-            optimizer.step()
-
-            running_loss += loss.item()
-
-            if task == "classification":
-                if isinstance(criterion, nn.CrossEntropyLoss):
-                    preds = torch.argmax(outputs, dim=1)
-                else:
+            if task == "segmentation":
+                loss = criterion(outputs, targets_on_device)
+            elif task == "classification":
+                class_outputs = torch.max(outputs.view(outputs.size(0), -1), dim=1).values
+                targets_float = targets_on_device.float()
+                loss = criterion(class_outputs, targets_float)
+                
+                # Calculate accuracy for logging
+                with torch.no_grad():
                     mask_pred = (torch.sigmoid(outputs) > 0.5)
                     preds = mask_pred.view(mask_pred.size(0), -1).any(dim=1).long()
-                correct += (preds == targets).sum().item()
-                total += targets.size(0)
+                    correct += (preds == targets_on_device).sum().item()
+                    total += targets_on_device.size(0)
+
+            loss.backward()
+            optimizer.step()
+            running_loss += loss.item()
 
             avg_loss = running_loss / len(train_loader)
             if task == "classification":
-                loop.set_postfix(train_loss=f"{avg_loss:.4f}", train_acc=f"{correct/total:.4f}")
+                train_acc = correct / total if total > 0 else 0
+                loop.set_postfix(train_loss=f"{avg_loss:.4f}", train_acc=f"{train_acc:.4f}")
             if task == "segmentation":
                 loop.set_postfix(train_loss=f"{avg_loss:.4f}")
-
-        #print(f"Epoch {epoch}/{epochs} - Avg Train Loss: {avg_loss:.4f}")
 
         model.eval()
 
@@ -219,9 +228,10 @@ def train(model,
             loop.set_postfix(train=f"{avg_loss:.4f}", val=f"{val_loss:.4f}", dice=f"{val_dice:.4f}", iou=f"{val_iou:.4f}")
         if task == "classification":
             val_loss, val_acc = evaluate(val_loader)
+            train_acc_epoch = correct / total if total > 0 else 0
             history["train_loss"].append(avg_loss)
             history["val_loss"].append(val_loss)
-            history["train_acc"].append(correct / total)
+            history["train_acc"].append(train_acc_epoch)
             history["val_acc"].append(val_acc)
 
             # Early stopping
