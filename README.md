@@ -14,7 +14,8 @@ Brain MRI images together with manual FLAIR abnormality segmentation masks
 | ----------------------| -------------------------------------------------------------------|
 | Kaggle slug           | `kaggle/input/lgg-mri-segmentation/`                               |
 | File type             | TIF                                                                |
-| Image count           | 7858                                                               |
+| Image count           | Total 7858; for each scan 1 mask = 3929                            |
+| Sub-Folders           | 110; 1 per patient                                                 |
 | Image size            | 256 × 256 px                                                       |
 | Info                  | Tumors are annotated by pixel-based segmentation masks             |
 
