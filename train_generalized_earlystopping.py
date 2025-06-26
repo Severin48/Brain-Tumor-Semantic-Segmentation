@@ -116,7 +116,8 @@ def train(model,
                 if isinstance(criterion, nn.CrossEntropyLoss):
                     preds = torch.argmax(outputs, dim=1)
                 else:
-                    preds = (torch.sigmoid(outputs) > 0.5).long().squeeze(1)
+                    mask_pred = (torch.sigmoid(outputs) > 0.5)
+                    preds = mask_pred.view(mask_pred.size(0), -1).any(dim=1).long() # Flattens each mask to a nx1 vector and checks if any pixel is positive
                 correct += (preds == labels).sum().item()
                 total += labels.size(0)
             avg_loss = total_loss / len(loader)
@@ -169,7 +170,8 @@ def train(model,
                 if isinstance(criterion, nn.CrossEntropyLoss):
                     preds = torch.argmax(outputs, dim=1)
                 else:
-                    preds = (torch.sigmoid(outputs) > 0.5).long().squeeze(1)
+                    mask_pred = (torch.sigmoid(outputs) > 0.5)
+                    preds = mask_pred.view(mask_pred.size(0), -1).any(dim=1).long()
                 correct += (preds == targets).sum().item()
                 total += targets.size(0)
 
@@ -223,11 +225,11 @@ def train(model,
             history["val_acc"].append(val_acc)
 
             # Early stopping
-            if val_dice > (last_best_metric + min_delta):
-                best_metric = val_acc
-                best_weights = model.state_dict()
-                epochs_without_improvement = 0
-                last_best_metric = val_acc
+            if val_acc > (last_best_metric + min_delta): # <-- FIXED
+                    best_metric = val_acc
+                    best_weights = model.state_dict()
+                    epochs_without_improvement = 0
+                    last_best_metric = val_acc
             else:
                 epochs_without_improvement += 1
 
