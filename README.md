@@ -1,3 +1,22 @@
+## How to use
+1. Run the file 'hyperparameter_search' via: python hyperparameter_search.py [n_trials:int] [task:str] [model_type:str] [augment:True|False]
+2. The json with the corresponding parameters will be written in best_params.json
+3. Load hyperparameters from json before training a model with those parameters (see TrainWithLoadedParams.ipynb)
+
+## File explanations
+1. eval.py: Evaluation methods
+2. train_generalized_earlystopping.py: Training methods
+3. TrainWithLoadedParams.ipynb: Compare different models with loaded hyperparameters
+4. hyperparameter_search.py: Optuna-based hyperparameter search (use with cmd command)
+5. Baseline_Classification.ipynb: Definition, Training and Evaluation of Classification Model (VGG16)
+6. BaselineUNet.py: Baseline Model
+7. ImprovedUNet.py: Improved UNet Model
+8. best_params.json: Stores best hyperparameters after running hyperparameter_search.py
+9. DataExploration.ipynb: Outputs of data exploration
+10. Baseline.ipynb: Outputs of training baseline model without mask filtering (full dataset)
+11. OnlyWithMasks.ipynb: Outputs of training baseline model after doing mask filtering
+
+
 # Brain‑Tumor MRI Semantic Segmentation
 
 AI LAB HKA Project: https://www.kaggle.com/datasets/mateuszbuda/lgg-mri-segmentation

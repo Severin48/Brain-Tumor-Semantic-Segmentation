@@ -4,9 +4,9 @@ import re
 
 def _binarise(preds: torch.Tensor, thr: float = 0.5) -> torch.Tensor:
     """
-    Turn a (B,1,H,W) tensor of logits **or** probabilities into a
+    Turns a (B,1,H,W) tensor of logits or probabilities into a
     hard {0,1} mask.
-    If `preds` is floating-point we assume logits and apply sigmoid.
+    If 'preds' is float, assume logits + apply sigmoid.
     """
     if preds.dtype.is_floating_point:
         preds = torch.sigmoid(preds)
@@ -18,16 +18,16 @@ def dice_coefficient(preds: torch.Tensor,
                      eps: float = 1e-6,
                      thr: float = 0.5) -> float:
     """
-    Classic Sörensen-Dice averaged over the batch
+    Dice score averaged over the batch
 
     Args
     ----
-    preds   : raw logits **or** probabilities – shape (B,1,H,W)
-    targets : binary ground-truth masks     – shape (B,1,H,W)
+    preds   : logits or probabilities  shape (B,1,H,W)
+    targets : binary ground-truth masks    shape (B,1,H,W)
 
     Returns
     -------
-    Scalar Dice in [0,1].
+    Dice score in [0,1].
     """
     preds_bin   = _binarise(preds, thr)
     targets_bin = targets.float()

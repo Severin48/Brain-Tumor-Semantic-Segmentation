@@ -66,29 +66,7 @@ def train(model,
           save_dir: str = "checkpoints",
           save_name: str | None = None):
     """
-    Universal training function for segmentation and binary classification.
-
-    Parameters:
-        model: The model to be trained.
-        train_loader: DataLoader for training data.
-        val_loader: DataLoader for validation data.
-        device: CPU or GPU.
-        epochs: Number of epochs.
-        lr: Learning rate.
-        lr_sched_cls (Type[_LRScheduler] | None):
-                             Pass the *class* of a PyTorch scheduler
-                             (e.g. torch.optim.lr_scheduler.StepLR).
-                             Leave None to disable scheduling.
-        lr_sched_kwargs (dict | None): Extra kwargs forwarded to lr_sched_cls.
-        optimizer_class: Optimizer class.
-        loss_fn: Loss function or class.
-        task: "segmentation" or "classification".
-        save_dir: Directory to save checkpoints.
-        save_name: Filename for the checkpoint.
-
-    Returns:
-        model: Best model weights loaded.
-        results: Dict of history, val_loader, device, and save_path.
+    Universal training function for segmentation and binary classification with early stopping.
     """
     save_path = Path(save_dir)
     save_path.mkdir(parents=True, exist_ok=True)

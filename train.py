@@ -16,18 +16,7 @@ def train(model,
           save_dir="checkpoints",
           save_name=None):
     """
-    Train a segmentation model, keeping only the best weights,
-    and save checkpoint at the end with a timestamped (or custom) name.
-
-    Returns:
-        best_model: model loaded with the best validation-Dice weights
-        results: {
-          'model': best_model,
-          'history': {'train_loss': [...], 'val_loss': [...], 'val_dice': [...], 'val_iou': [...]},
-          'val_loader': val_loader,
-          'device': device,
-          'save_path': full path to the saved .pth
-        }
+    Train a segmentation model
     """
     # Manage checkpoint path
     save_dir = Path(save_dir)
