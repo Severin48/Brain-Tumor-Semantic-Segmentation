@@ -66,15 +66,6 @@ Follow these steps to set up the project environment on your local machine.
 11. Baseline.ipynb: Outputs of training baseline model without mask filtering (full dataset)
 12. OnlyWithMasks.ipynb: Outputs of training baseline model after doing mask filtering
 
-
-# Brain‑Tumor MRI Semantic Segmentation
-
-AI LAB HKA Project: https://www.kaggle.com/datasets/mateuszbuda/lgg-mri-segmentation
-
-Brain MRI images together with manual FLAIR abnormality segmentation masks
-
-**Brain MRI segmentation** by Mateusz Buda on Kaggle.
-
 ---
 
 ## 1 – Dataset
@@ -108,7 +99,6 @@ kaggle datasets download -d mateuszbuda/lgg-mri-segmentation
 ---
 
 ## 3 – Timeline & Milestones
-We use 06 -> 20 Jun as a buffer, depending on vanilla U-Net progress.
 
 | Week / Due Date         | Main Focus                                                        | Key Deliverables                                           | Done |
 | ----------------------- | ----------------------------------------------------------------- | ---------------------------------------------------------- | :--: |
