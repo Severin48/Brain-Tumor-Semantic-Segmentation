@@ -1,0 +1,18 @@
+Metadata-Version: 2.4
+Name: Brain-Tumor-Semantic-Segmentation
+Version: 0.1.0
+Summary: Semantic segmentation of brain tumors using U-Net models.
+Requires-Python: >=3.9
+Requires-Dist: torch
+Requires-Dist: torchvision
+Requires-Dist: numpy
+Requires-Dist: scikit-learn
+Requires-Dist: pandas
+Requires-Dist: matplotlib
+Requires-Dist: tqdm
+Requires-Dist: opencv-python
+Requires-Dist: albumentations
+Provides-Extra: dev
+Requires-Dist: jupyterlab; extra == "dev"
+Requires-Dist: notebook; extra == "dev"
+Requires-Dist: ruff; extra == "dev"

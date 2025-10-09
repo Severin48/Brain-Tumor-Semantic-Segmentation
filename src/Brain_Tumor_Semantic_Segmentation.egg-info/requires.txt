@@ -1,0 +1,14 @@
+torch
+torchvision
+numpy
+scikit-learn
+pandas
+matplotlib
+tqdm
+opencv-python
+albumentations
+
+[dev]
+jupyterlab
+notebook
+ruff

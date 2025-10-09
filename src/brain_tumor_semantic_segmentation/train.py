@@ -5,7 +5,7 @@ import torch.nn as nn
 import torch.optim as optim
 from tqdm import tqdm
 from datetime import datetime
-from util import dice_coefficient, iou_score
+from src.brain_tumor_semantic_segmentation.util import dice_coefficient, iou_score
 
 def train(model,
           train_loader,
@@ -29,7 +29,8 @@ def train(model,
     save_path = save_dir / fname
 
     # Training
-    model = model.to(device)
+    if torch.cuda.is_available():
+        model = model.to(device)
     optimizer = optim.Adam(model.parameters(), lr=lr)
     loss_fn = nn.BCEWithLogitsLoss()
 
@@ -42,7 +43,8 @@ def train(model,
         total_loss = 0.0
         dices, ious = [], []
         for images, masks in loader:
-            images, masks = images.to(device), masks.to(device)
+            if torch.cuda.is_available(): 
+                images, masks = images.to(device), masks.to(device)
             outputs = model(images)
             total_loss += loss_fn(outputs, masks).item()
             dices.append(dice_coefficient(outputs, masks))
@@ -64,7 +66,8 @@ def train(model,
         running_loss = 0.0
         loop = tqdm(train_loader, desc=f"Epoch {epoch}/{epochs}")
         for images, masks in loop:
-            images, masks = images.to(device), masks.to(device)
+            if torch.cuda.is_available(): 
+                images, masks = images.to(device), masks.to(device)
             outputs = model(images)
             loss = loss_fn(outputs, masks)
 

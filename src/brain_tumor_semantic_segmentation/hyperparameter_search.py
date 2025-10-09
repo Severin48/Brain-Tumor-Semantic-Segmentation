@@ -1,7 +1,7 @@
 import optuna
 import torch
 from train_generalized_earlystopping import train, bce_loss
-from data import load_mri_dataframe, get_dataloaders_from_dfs, get_dataloaders_from_dfs_binary
+from src.brain_tumor_semantic_segmentation.data import load_mri_dataframe, get_dataloaders_from_dfs, get_dataloaders_from_dfs_binary
 from BaselineUNet import BaselineUNet
 from sklearn.model_selection import KFold
 import numpy as np

@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 import torch
 import numpy as np
 
-from util import dice_coefficient, iou_score
+from src.brain_tumor_semantic_segmentation.util import dice_coefficient, iou_score
 
 
 def evaluate(results: dict, num_batches: int = 1, alpha: float = 0.35) -> None:
@@ -22,7 +22,8 @@ def evaluate(results: dict, num_batches: int = 1, alpha: float = 0.35) -> None:
     dices, ious = [], []
     with torch.no_grad():
         for imgs, masks in val_loader:
-            imgs, masks = imgs.to(device), masks.to(device)
+            if torch.cuda.is_available():
+                imgs, masks = imgs.to(device), masks.to(device)
             outs = model(imgs)
             dices.append(dice_coefficient(outs, masks))
             ious.append(iou_score(outs, masks))
@@ -60,8 +61,8 @@ def evaluate(results: dict, num_batches: int = 1, alpha: float = 0.35) -> None:
     with torch.no_grad():
         for b_idx, (images, masks) in enumerate(val_loader):
             if b_idx >= num_batches: break
-
-            images = images.to(device)
+            if torch.cuda.is_available():
+                images = images.to(device)
             outs   = torch.sigmoid(model(images)).cpu()
             preds  = (outs > 0.5).float()
 
@@ -167,7 +168,8 @@ def evaluate_classification(results: dict, num_batches: int = 1, class_names: li
         for batch_idx, (images, labels) in enumerate(val_loader):
             if batch_idx >= num_batches:
                 break
-            images = images.to(device)
+            if torch.cuda.is_available():
+                images = images.to(device)
             logits = model(images)
             probs  = softmax(logits).cpu()
             preds  = torch.argmax(probs, dim=1)
@@ -200,8 +202,9 @@ def evaluate_classification(results: dict, num_batches: int = 1, class_names: li
     correct, total = 0, 0
     with torch.no_grad():
         for images, labels in val_loader:
-            images = images.to(device)
-            labels = labels.to(device).long()
+            if torch.cuda.is_available(): 
+                images = images.to(device)
+                labels = labels.to(device).long()
             logits = model(images)
             preds  = torch.argmax(logits, dim=1)
             correct += (preds == labels).sum().item()

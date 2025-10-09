@@ -7,7 +7,7 @@ from tqdm import tqdm
 from datetime import datetime
 from typing import Type, Optional, Dict, Tuple, Any, Callable
 import torch.nn.functional as F
-from util import dice_coefficient, iou_score
+from src.brain_tumor_semantic_segmentation.util import dice_coefficient, iou_score
 
 def dice_loss(inputs, target, eps=1e-6):
     inputs = torch.sigmoid(inputs)
@@ -151,7 +151,7 @@ def train(model,
         best_metric = val_acc0
 
     # Training loop
-    for epoch in range(1, epochs + 1):
+    for epoch in tqdm(range(1, epochs + 1)):
         model.train()
         running_loss = 0.0
         correct, total = 0, 0

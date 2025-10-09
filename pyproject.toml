@@ -1,0 +1,24 @@
+[project]
+name = "Brain-Tumor-Semantic-Segmentation"
+version = "0.1.0"
+description = "Semantic segmentation of brain tumors using U-Net models."
+requires-python = ">=3.9"
+
+dependencies = [
+    "torch",
+    "torchvision",
+    "numpy",
+    "scikit-learn",
+    "pandas",
+    "matplotlib",
+    "tqdm",
+    "opencv-python",   
+    "albumentations",
+]
+
+[project.optional-dependencies]
+dev = [
+    "jupyterlab",
+    "notebook",
+    "ruff",
+]

@@ -11,12 +11,13 @@ from typing import Tuple
 from torch.utils.data import Dataset, DataLoader
 from torchvision import transforms
 from sklearn.model_selection import train_test_split
-from util import extract_index
+from src.brain_tumor_semantic_segmentation.util import extract_index
 import albumentations as A
 from albumentations.pytorch import ToTensorV2
 
-OS_PREFIX = "D:/data/" if platform.system() == "Windows" else ""
-DATA_PATH = OS_PREFIX + "kaggle/input/lgg-mri-segmentation/kaggle_3m/"
+DATA_PATH = os.path.expanduser(
+    os.path.join("~", "kaggle", "input", "lgg-mri-segmentation", "kaggle_3m/")
+)
 IMG_SIZE = 256
 
 
@@ -79,8 +80,24 @@ class MRIDatasetBinary(Dataset):
             image = torch.from_numpy(image.transpose(2, 0, 1)).float() / 255.0
 
         return image, torch.tensor(binary_label, dtype=torch.long)
+
+def validate_data_path(path: str):
+    """Checks if the data path exists and raises a helpful error if not."""
+    if not os.path.isdir(path):
+        # Using an f-string to build a clear, multi-line error message
+        error_message = (
+            f"Data directory not found at the specified path: {path}\n"
+            "Please ensure the data is downloaded and placed correctly.\n\n"
+            "1. Download the dataset from: https://www.kaggle.com/datasets/mateuszbuda/lgg-mri-segmentation\n"
+            "2. Extract the files to the expected location, which is structured like this:\n"
+            f"  {DATA_PATH}\n"
+            "   (The constant `DATA_PATH` in `src/brain_tumor_semantic_segmentation/data.py` points to this directory)"
+        )
+        raise FileNotFoundError(error_message)
         
 def load_mri_dataframe(data_path=DATA_PATH):
+    validate_data_path(data_path)
+    
     data_map = []
     for sub_dir_path in glob.glob(data_path + "*"):
         if os.path.isdir(sub_dir_path):
@@ -153,8 +170,7 @@ def get_dataloaders(
     augment: bool = False,
     omit_empty_masks: bool = False
 ) -> Tuple[DataLoader, DataLoader]:
-
-
+    
     if omit_empty_masks:
         df = df[df["diagnosis"] == 1].reset_index(drop=True)
 

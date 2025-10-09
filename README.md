@@ -1,7 +1,56 @@
+# Brain-Tumor MRI Semantic Segmentation
+
+An AI Lab project at HKA for semantic segmentation of brain tumors in MRI scans, based on the [LGG MRI Segmentation dataset on Kaggle](https://www.kaggle.com/datasets/mateuszbuda/lgg-mri-segmentation).
+
+This project uses modern Python tooling, including `uv` for high-speed environment and package management.
+
+---
+
+## Setup & Installation
+
+Follow these steps to set up the project environment on your local machine.
+
+#### Prerequisites
+-   **Git:** To clone the repository.
+-   **uv:** This project uses `uv` for environment management. If you don't have it, install it by following the [official `uv` installation guide](https://docs.astral.sh/uv/getting-started/installation/).
+
+#### Steps
+
+1.  **Clone the repository:**
+    ```bash
+    git clone [https://github.com/your-username/Brain-Tumor-Semantic-Segmentation.git](https://github.com/your-username/Brain-Tumor-Semantic-Segmentation.git)
+    cd Brain-Tumor-Semantic-Segmentation
+    ```
+
+2.  **Create a virtual environment (will be inside .venv by default):**
+    ```bash
+    uv venv
+    ```
+
+3.  **Activate the environment:**
+    * On **Linux or macOS** (bash/zsh):
+        ```bash
+        source .venv/bin/activate
+        ```
+    * On **Windows** (PowerShell):
+        ```powershell
+        .venv\Scripts\Activate.ps1
+        ```
+
+4.  **Install dependencies:**
+    This command installs the project in editable mode (`-e`) along with all required development packages from `pyproject.toml`.
+    ```bash
+    uv pip install -e .[dev]
+    ```
+    You are now ready to run the scripts and notebooks!
+
+---
+
 ## How to use
-1. Run the file 'hyperparameter_search' via: python hyperparameter_search.py [n_trials:int] [task:str] [model_type:str] [augment:True|False]
-2. The json with the corresponding parameters will be written in best_params.json
-3. Load hyperparameters from json before training a model with those parameters (see TrainWithLoadedParams.ipynb)
+1. Open JupyterLab via ```bash jupyter lab``` and you are ready to execute the Cells within notebooks such as Baseline.ipynb
+3. Run the file 'hyperparameter_search' via: python hyperparameter_search.py [n_trials:int] [task:str] [model_type:str] [augment:True|False]
+4. The json with the corresponding parameters will be written in best_params.json
+5. Load hyperparameters from json before training a model with those parameters (see TrainWithLoadedParams.ipynb)
 
 ## File explanations
 1. data.py: Create data loaders
