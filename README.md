@@ -18,7 +18,7 @@ Follow these steps to set up the project environment on your local machine.
 
 1.  **Clone the repository:**
     ```bash
-    git clone [https://github.com/your-username/Brain-Tumor-Semantic-Segmentation.git](https://github.com/your-username/Brain-Tumor-Semantic-Segmentation.git)
+    git clone https://github.com/Severin48/Brain-Tumor-Semantic-Segmentation.git
     cd Brain-Tumor-Semantic-Segmentation
     ```
 
