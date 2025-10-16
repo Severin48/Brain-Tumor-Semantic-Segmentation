@@ -46,11 +46,30 @@ Follow these steps to set up the project environment on your local machine.
 
 ---
 
-## How to use
-1. Open JupyterLab via ```bash jupyter lab``` and you are ready to execute the Cells within notebooks such as Baseline.ipynb
-3. Run the file 'hyperparameter_search' via: python hyperparameter_search.py [n_trials:int] [task:str] [model_type:str] [augment:True|False]
-4. The json with the corresponding parameters will be written in best_params.json
-5. Load hyperparameters from json before training a model with those parameters (see TrainWithLoadedParams.ipynb)
+## 🧹 Code Quality with Ruff
+
+This project uses **[Ruff](https://github.com/astral-sh/ruff)** — a super-fast Python linter, formatter, and import sorter written in Rust. It ensures a consistent, clean code style across the project.
+
+```bash
+uv run ruff check --fix
+```
+
+- `check` runs the linter on the entire project.  
+- `--fix` automatically corrects many issues (e.g. formatting, unused imports).  
+
+It’s good practice to run this command **before committing**, to keep the codebase clean and consistent.
+
+If you just want to **check** without fixing:
+
+```bash
+uv run ruff check
+```
+
+
+## How to run a hyperparameter search
+1. Run the file 'hyperparameter_search' via: python hyperparameter_search.py [n_trials:int] [task:str] [model_type:str] [augment:True|False]
+2. The json with the corresponding parameters will be written in best_params.json
+3. Load hyperparameters from json before training a model with those parameters (see TrainWithLoadedParams.ipynb)
 
 ## File explanations
 1. data.py: Create data loaders

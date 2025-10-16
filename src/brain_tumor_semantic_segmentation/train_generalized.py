@@ -1,11 +1,10 @@
-import os
 from pathlib import Path
 import torch
 import torch.nn as nn
 import torch.optim as optim
 from tqdm import tqdm
 from datetime import datetime
-from typing import Type, Optional, Dict, Tuple, Any, Callable
+from typing import Type, Optional, Dict, Any, Callable
 import torch.nn.functional as F
 from src.brain_tumor_semantic_segmentation.util import dice_coefficient, iou_score
 

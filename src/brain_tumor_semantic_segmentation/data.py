@@ -1,15 +1,11 @@
 import os
-import platform
 import glob
-import random
 import numpy as np
 import pandas as pd
 import cv2
 import torch
-import re
 from typing import Tuple
 from torch.utils.data import Dataset, DataLoader
-from torchvision import transforms
 from sklearn.model_selection import train_test_split
 from src.brain_tumor_semantic_segmentation.util import extract_index
 import albumentations as A

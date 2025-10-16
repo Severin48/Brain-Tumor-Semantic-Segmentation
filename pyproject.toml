@@ -22,3 +22,8 @@ dev = [
     "notebook",
     "ruff",
 ]
+
+[dependency-groups]
+dev = [
+    "ruff>=0.14.0",
+]

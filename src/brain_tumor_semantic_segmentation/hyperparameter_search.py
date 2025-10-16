@@ -5,13 +5,11 @@ from src.brain_tumor_semantic_segmentation.data import load_mri_dataframe, get_d
 from BaselineUNet import BaselineUNet
 from sklearn.model_selection import KFold
 import numpy as np
-import pandas as pd
 from OriginalUNet import OriginalUNet
 from sklearn.model_selection import train_test_split
 from ImprovedUNet import ImprovedUNet
 import json
 import sys
-import os
 
 def objective(trial, augment=False, task='segmentation', model_type='baseline', df=None):
     # 1. Define hyperparameters to be optimized
@@ -142,7 +140,7 @@ if __name__ == "__main__":
                     augment = False
                 else:
                     raise ValueError("augment must be True or False")
-        except Exception as e:
+        except Exception:
             print("Usage: python hyperparameter_search.py [n_trials:int] [task:str] [model_type:str] [augment:True|False]")
             sys.exit(1)
 

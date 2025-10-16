@@ -1,8 +1,7 @@
-import os
 from pathlib import Path
 from tqdm import tqdm
 from datetime import datetime
-from typing import Type, Optional, Dict, Tuple, Any, Callable
+from typing import Type, Optional, Dict, Any, Callable
 from util import dice_coefficient, iou_score
 import torch
 import torch.nn as nn
