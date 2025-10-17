@@ -22,9 +22,9 @@ Follow these steps to set up the project environment on your local machine.
     cd Brain-Tumor-Semantic-Segmentation
     ```
 
-2.  **Create a virtual environment (will be inside .venv by default):**
+2.  **Set up the virtual environment and install all dependencies:**
     ```bash
-    uv venv
+    uv sync
     ```
 
 3.  **Activate the environment:**
