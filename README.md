@@ -27,22 +27,23 @@ Follow these steps to set up the project environment on your local machine.
     uv sync
     ```
 
-3.  **Activate the environment:**
-    * On **Linux or macOS** (bash/zsh):
-        ```bash
-        source .venv/bin/activate
-        ```
-    * On **Windows** (PowerShell):
-        ```powershell
-        .venv\Scripts\Activate.ps1
-        ```
+To install optional development tools like Jupyter and ruff, run:
 
-4.  **Install dependencies:**
-    This command installs the project in editable mode (`-e`) along with all required development packages from `pyproject.toml`.
-    ```bash
-    uv pip install -e .[dev]
-    ```
-    You are now ready to run the scripts and notebooks!
+```bash
+uv sync --extra dev
+```
+
+Then, to start Jupyter Lab:
+
+```bash
+uv run jupyter lab
+```
+
+Or, to start the classic notebook interface:
+
+```bash
+uv run jupyter notebook
+```
 
 ---
 
