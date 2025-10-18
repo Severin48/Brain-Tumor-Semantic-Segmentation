@@ -2,7 +2,7 @@ from pathlib import Path
 from tqdm import tqdm
 from datetime import datetime
 from typing import Type, Optional, Dict, Any, Callable
-from util import dice_coefficient, iou_score
+from src.brain_tumor_semantic_segmentation.util import dice_coefficient, iou_score
 import torch
 import torch.nn as nn
 import torch.optim as optim

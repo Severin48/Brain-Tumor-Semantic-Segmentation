@@ -150,7 +150,7 @@ def train(model,
         best_metric = val_acc0
 
     # Training loop
-    for epoch in tqdm(range(1, epochs + 1)):
+    for epoch in range(1, epochs + 1):
         model.train()
         running_loss = 0.0
         correct, total = 0, 0

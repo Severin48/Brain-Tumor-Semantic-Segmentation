@@ -5,6 +5,7 @@ import torch
 import numpy as np
 
 from src.brain_tumor_semantic_segmentation.util import dice_coefficient, iou_score
+from src.brain_tumor_semantic_segmentation.data import DATASET_MEAN, DATASET_STD
 
 
 def evaluate(results: dict, num_batches: int = 1, alpha: float = 0.35) -> None:
@@ -68,14 +69,20 @@ def evaluate(results: dict, num_batches: int = 1, alpha: float = 0.35) -> None:
 
             for j in range(images.size(0)):
                 img = images[j].cpu().permute(1, 2, 0).numpy()
-                if img.max() > 1:
-                    img = np.clip(img / 255.0, 0, 1)  # Normalize if necessary
+
+                # Un-normalize the image to get pixel values in the original [0, 255] range
+                # for brightness analysis. These are default ImageNet stats from Albumentations.
+                unnormalized_img = (img * DATASET_STD) + DATASET_MEAN
+                unnormalized_img = np.clip(unnormalized_img, 0, 1)
 
                 gt = masks[j][0].cpu().numpy().astype(bool)
                 pr = preds[j][0].numpy().astype(bool)
 
-                # Raw image
-                panel1 = img
+                # The image to display is the correctly denormalized one
+                panel1 = unnormalized_img
+
+                # For the overlays, use the same correctly denormalized image
+                img_for_overlay = unnormalized_img
 
                 # GT Overlay
                 rgba_gt = make_rgba(gt, color=[0, 1, 0], alpha_val=alpha)
@@ -103,10 +110,10 @@ def evaluate(results: dict, num_batches: int = 1, alpha: float = 0.35) -> None:
 
                 axes[0].imshow(panel1)
 
-                axes[1].imshow(img)
+                axes[1].imshow(img_for_overlay)
                 axes[1].imshow(rgba_gt)
 
-                axes[2].imshow(img)
+                axes[2].imshow(img_for_overlay)
                 axes[2].imshow(comp_pred)
 
                 axes[3].imshow(canvas)
@@ -116,6 +123,9 @@ def evaluate(results: dict, num_batches: int = 1, alpha: float = 0.35) -> None:
                     ax.set_title(t, fontsize=9)
 
                 plt.tight_layout()
+
+                # print(f"Image Analysis: {percent_zero:.2f}% of pixels are black (0), {percent_dark:.2f}% of pixels have intensity < 100.")
+                
                 plt.show()
 
 

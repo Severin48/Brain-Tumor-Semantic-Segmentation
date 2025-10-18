@@ -4,6 +4,7 @@ import numpy as np
 import pandas as pd
 import cv2
 import torch
+from tqdm import tqdm
 from typing import Tuple
 from torch.utils.data import Dataset, DataLoader
 from sklearn.model_selection import train_test_split
@@ -15,6 +16,58 @@ DATA_PATH = os.path.expanduser(
     os.path.join("~", "kaggle", "input", "lgg-mri-segmentation", "kaggle_3m/")
 )
 IMG_SIZE = 256
+STATS_FILE = "mri_dataset_stats.npy"
+
+
+def _calculate_dataset_stats(data_path=DATA_PATH):
+    """
+    Helper function to calculate mean and std. Should only be run once.
+    """
+    image_paths = [p for p in glob.glob(os.path.join(data_path, "*", "*.tif")) if "mask" not in p]
+    
+    pixel_sum = np.zeros(3)
+    pixel_sum_sq = np.zeros(3)
+    pixel_count = 0
+    
+    print(f"Calculating dataset stats for {len(image_paths)} images... (this runs only once)")
+    
+    for img_path in tqdm(image_paths):
+        image = cv2.imread(img_path)
+        if image is None:
+            continue
+            
+        image = image.astype(np.float32) / 255.0
+        h, w, c = image.shape
+        
+        pixel_sum += image.sum(axis=(0, 1))
+        pixel_sum_sq += (image ** 2).sum(axis=(0, 1))
+        pixel_count += h * w
+        
+    mean = pixel_sum / pixel_count
+    var = (pixel_sum_sq / pixel_count) - (mean ** 2)
+    std = np.sqrt(var)
+    
+    # Return in RGB order as cv2 reads BGR
+    return mean[::-1], std[::-1]
+
+def get_or_calculate_dataset_stats(stats_file=STATS_FILE):
+    """
+    Loads dataset stats from a file or calculates and saves them if the file doesn't exist.
+    """
+    if os.path.exists(stats_file):
+        print(f"Loading cached dataset stats from '{stats_file}'")
+        stats = np.load(stats_file, allow_pickle=True).item()
+        return stats['mean'], stats['std']
+    else:
+        mean, std = _calculate_dataset_stats()
+        stats = {'mean': mean, 'std': std}
+        np.save(stats_file, stats)
+        print(f"Saved dataset stats to '{stats_file}'")
+        return mean, std
+
+DATASET_MEAN, DATASET_STD = get_or_calculate_dataset_stats()
+print(f"Dataset Mean: {np.round(DATASET_MEAN, 4)}")
+print(f"Dataset Std:  {np.round(DATASET_STD, 4)}")
 
 
 class MRIDataset(Dataset):
@@ -90,6 +143,25 @@ def validate_data_path(path: str):
             "   (The constant `DATA_PATH` in `src/brain_tumor_semantic_segmentation/data.py` points to this directory)"
         )
         raise FileNotFoundError(error_message)
+
+def is_valid_image(img_path: str, threshold_percent: float = 100.0, threshold_intensity: int = 0) -> bool:
+    """
+    Checks if an image is not almost entirely dark.
+    Returns True if the fraction of pixels below threshold_intensity is 
+    less than threshold_percent.
+    """
+    # Read in grayscale as it's faster and sufficient for this check
+    image = cv2.imread(img_path, cv2.IMREAD_GRAYSCALE)
+    if image is None:
+        return False
+    
+    # Calculate the ratio of dark pixels
+    dark_pixels = np.sum(image < threshold_intensity)
+    total_pixels = image.size
+    dark_pixel_percentage = (dark_pixels / total_pixels) * 100
+    
+    # Return True if the image is NOT too dark
+    return dark_pixel_percentage < threshold_percent
         
 def load_mri_dataframe(data_path=DATA_PATH):
     validate_data_path(data_path)
@@ -126,6 +198,16 @@ def load_mri_dataframe(data_path=DATA_PATH):
         return 1 if m.max() > 0 else 0
 
     df_final["diagnosis"] = df_final["mask_path"].apply(positive_negative_diagnosis)
+
+    # Filter out images that are mostly black
+    initial_count = len(df_final)
+    df_final = df_final[df_final["image_path"].apply(is_valid_image)].reset_index(drop=True)
+    filtered_count = initial_count - len(df_final)
+    if filtered_count > 0:
+        print(f"[Data] Filtered out {filtered_count}/{initial_count} images that were >90% black.")
+
+    return df_final
+    
     return df_final
     
 def get_albu_augmentation(img_size=256):
@@ -146,7 +228,7 @@ def get_albu_augmentation(img_size=256):
         # auswirkung checken, siehe dataexploration!
         # A.ElasticTransform(alpha=0.5, sigma=10, p=0.05),
         A.Resize(img_size, img_size),
-        A.Normalize(),  
+        A.Normalize(mean=DATASET_MEAN, std=DATASET_STD), 
         ToTensorV2()
     ])
 
@@ -154,7 +236,7 @@ def get_albu_img_transform(img_size=256):
     #macht aus Rohbildern gleiche Format wie train_transform (nur eben ohne Augmentation)! wichtig
     return A.Compose([
         A.Resize(img_size, img_size),
-        A.Normalize(),    
+        A.Normalize(mean=DATASET_MEAN, std=DATASET_STD), 
         ToTensorV2()
     ])
 

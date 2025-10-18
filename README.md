@@ -6,6 +6,11 @@ This project uses modern Python tooling, including `uv` for high-speed environme
 
 ---
 
+## Preview
+![Brain MRI images with predictions](images/ExampleOutput.png)
+
+---
+
 ## Setup & Installation
 
 Follow these steps to set up the project environment on your local machine.
@@ -43,6 +48,34 @@ Follow these steps to set up the project environment on your local machine.
     uv pip install -e .[dev]
     ```
     You are now ready to run the scripts and notebooks!
+
+---
+
+### Enabling GPU Support (Optional)
+
+If you have a compatible NVIDIA GPU, you can run the project on CUDA for a significant speed-up.
+
+1.  **Check your CUDA version:**
+    Run the following command in your terminal. The CUDA version is displayed in the top right corner.
+    ```bash
+    nvidia-smi
+    ```
+    ![Screenshot of nvidia-smi command output showing the CUDA version](images/CudaVersionCheck.png)
+
+2.  **Uninstall the CPU-only version of PyTorch:**
+    The default installation comes with a CPU-only version of PyTorch. Remove it first.
+    ```bash
+    uv pip uninstall torch torchvision
+    ```
+
+3.  **Install the CUDA-enabled version of PyTorch:**
+    Go to the [PyTorch "Get Started" page](https://pytorch.org/get-started/locally/) and select the options that match your system (e.g., Stable, Windows/Linux, Pip, Python, your CUDA version). This will generate the correct installation command.
+
+    For example, the command for **CUDA 12.8** is:
+    ```bash
+    uv pip install torch torchvision torchaudio --index-url [https://download.pytorch.org/whl/cu128](https://download.pytorch.org/whl/cu128)
+    ```
+    Replace `cu128` with the version that matches your system. You are now ready to use your GPU!
 
 ---
 
